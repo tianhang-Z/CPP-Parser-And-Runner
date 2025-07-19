@@ -1,7 +1,0 @@
-﻿  BasicFunc.cpp
-  BasicVar.cpp
-  Calculator.cpp
-  main.cpp
-  正在生成代码...
-E:\hw2\src\Calculator.cpp(153,1): warning C4715: “thz::Calculator::evaluateFunCallTokens”: 不是所有的控件路径都返回值
-  hw2.vcxproj -> E:\hw2\bin\Debug\hw2.exe
