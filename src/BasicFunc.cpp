@@ -5,11 +5,17 @@ namespace thz {
 
 
     bool isVarDeclStmt(const std::string& stmt) {
-        if (stmt.find("int ") == 0 || stmt.find("double ") == 0 || stmt.find("char ") == 0 
-            || stmt.find("int* ") == 0|| stmt.find("int& ") == 0)
-            return true;
-        else return false;
-    };
+        for (const char* type : { "int ", "int* ", "int& ",
+                                "double ", "double* ", "double& ",
+                                "char ", "char* ", "char& ",
+                                "void ", "void* " }) {
+            if (stmt.find(type) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool isAssignStmt(const std::string& stmt) {
         if (stmt.find('=') != std::string::npos) return true;
         else return false;
@@ -121,7 +127,7 @@ namespace thz {
                 if (parentFunc!=nullptr) 
                     var = createArgsByParentVar(type, paramName, argValue);
                 else {   // 参数并非变量 而是具体的值 因为并非父函数调用的
-                        var = createArgsByTemp(type, paramName, argValue);
+                        var = createVarByTemp(type, paramName, argValue);
                 }
             } else {
                 throw std::runtime_error("Argument mismatch");
@@ -242,15 +248,18 @@ namespace thz {
         m_varMap[name] = std::move(var);
     }
 
-    void FuncBase::doAssignment(std::shared_ptr<VarBase> leftVar, const std::string& rightExpr,bool leftDeref) {
+    void FuncBase::doAssignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr,bool leftDeref) {
         VarType leftType = leftVar->getType();
 
-        // 处理int a=sum(arg1,arg2)   int* a=sum(arg1,arg2)   int& a=sum(arg1,arg2)
+        // 处理 (int)a=sum(arg1,arg2)   (int*) a=sum(arg1,arg2)   (int&) a=sum(arg1,arg2)
         if (isFunCall(rightExpr)) {
             std::shared_ptr<VarBase> ret = createVarByFunCallRet(rightExpr);
             VarType retType = ret->getType();
-            if (isPtr(retType) || isRef(retType)) {
-                rePtr(leftVar, ret);  // 如果返回指针和引用 , 则共享数据
+            if (isPtr(retType) ) {
+                sharePtr(leftVar, ret);  // 如果返回指针和引用 , 则共享数据
+            }
+            else if (isRef) {
+                shareRef(leftVar, ret);
             }
             else {
                 setBasicVar(leftVar, getDoubleValue(ret));
@@ -258,8 +267,19 @@ namespace thz {
         }
         // 解析引用
         else if (isRef(leftType)) {
-            double result = m_calc.evaluateExpression(rightExpr, this);
-            setBasicVar(leftVar, result);
+            // 当leftType是返回值时 需要特殊处理
+            // int& donothing(int& a) {return a;}
+            if (leftVar->getName() == "return_var") {
+                auto it = m_varMap.find(rightExpr);
+                if (it == m_varMap.end())
+                    throw std::runtime_error("can not get rightVar");
+                std::shared_ptr<VarBase> rightVar = it->second;
+                shareRef(leftVar, rightVar);
+            }
+            else {
+                double result = m_calc.evaluateExpression(rightExpr, this);
+                setBasicVar(leftVar, result);
+            }
         }
         // 解析*p1=a+3;
         else if (leftDeref && isPtr(leftType)) {
@@ -274,8 +294,8 @@ namespace thz {
             if (!isPtr(rightVar->second->getType()))
                 throw std::runtime_error("rigth var not a pointer");
             sharePtr(leftVar, rightVar->second);
-        } //处理常规情况
-        else {
+        } //处理常规情况 a=b;
+        else { 
             double result = m_calc.evaluateExpression(rightExpr, this);
             setBasicVar(leftVar, result);
         }

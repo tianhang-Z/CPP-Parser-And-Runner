@@ -23,6 +23,8 @@ namespace thz {
 	XX(DOUBLE_REF,"double&")  \
 	XX(DOUBLE_PTR,"double*")  \
 	XX(CHAR,"char")  \
+	XX(CHAR_REF,"char&")  \
+	XX(CHAR_PTR,"char*")  \
 	XX(NOTYPE,"no_type")
 
 	enum class VarType : unsigned int {
@@ -31,7 +33,7 @@ namespace thz {
 #undef GEN_TYPE
 	};
 
-	inline const char* typeStr(VarType type) {
+	inline const char* type2Str(VarType type) {
 		static const char* typeTab[] = {
 	#define GEN_TYPESTR(t,s) s,
 			TYPEMAP(GEN_TYPESTR)
@@ -42,13 +44,29 @@ namespace thz {
 		return typeTab[unsigned(type)];
 	};
 
-	typedef std::map<std::string, std::shared_ptr<VarBase>> __var_map__;
 
+	inline VarType str2Type(const std::string& str) {
+		static const std::map<std::string, VarType> typeMap = {
+	#define GEN_TYPEPAIR(t, s) {s, VarType::t},
+			TYPEMAP(GEN_TYPEPAIR)
+	#undef GEN_TYPEPAIR
+		};
+
+		auto it = typeMap.find(str);
+		if (it != typeMap.end()) {
+			return it->second;
+		}
+		throw std::runtime_error("Unsupported parameter type: " + str);
+	}
+
+
+	typedef std::map<std::string, std::shared_ptr<VarBase>> __var_map__;
 
 	bool isBasicVar(const std::string& type);
 	bool isPtr(VarType type);
 	bool isRef(VarType type);
-	VarType str2Type(const std::string& str);
+	VarType getReferenceType(VarType baseType);
+	VarType getPointerType(VarType baseType);
 
 	std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, const std::string& initialValue = "");
 	std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, double value);
@@ -59,7 +77,7 @@ namespace thz {
 	std::shared_ptr<VarBase> createVariablePtr(VarType type, const std::string& name, std::shared_ptr<VarBase> tar,bool shareData=false);
 
 
-	std::shared_ptr<VarBase> createArgsByTemp(VarType type, std::string paramName, std::string argValue);
+	std::shared_ptr<VarBase> createVarByTemp(VarType type, std::string paramName, std::string argValue);
 	std::shared_ptr<VarBase> createVarByVar(VarType type, std::string name, std::shared_ptr<VarBase> rightVar,
 		bool createPtr = false, bool createRef = false, bool getAddr = false, bool deRef = false);
 	std::shared_ptr<VarBase> createVarByVarMap(VarType type, std::string name, std::string argValue, __var_map__ varMap);
@@ -68,6 +86,7 @@ namespace thz {
 	std::shared_ptr<VarBase> deReference(std::shared_ptr<VarBase> var);
 	void rePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 	void sharePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
+	void shareRef(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 
 	bool isRef(VarType type);
 	void setBasicVar(std::shared_ptr<VarBase> target, double value);
@@ -125,142 +144,129 @@ namespace thz {
 		}
 	};
 
-	
-	class VarInt : public VarBase {
-	public:
-		VarInt(const std::string& name) {
-			setName(name);
-			m_data = 0;
-			setType(VarType::INT);
-		}
-		VarInt(const std::string& name, std::shared_ptr<VarBase> data) {
-			setName(name);
-			std::shared_ptr<VarInt> temp = std::dynamic_pointer_cast<VarInt>(data);
-			m_data = temp->m_data;
-			setType(VarType::INT);
-		}
-		VarInt(const std::string& name, int data) {
-			setName(name);
-			m_data = data;
-			setType(VarType::INT);
-		};
-		VarInt(const std::string& name, const std::string& dataStr) {
-			setName(name);
-			setData(dataStr);
-			setType(VarType::INT);
-		};
-		std::string getData() const {
-			return std::to_string(m_data);
-		};
-		void* getDataAddr() {
-			return &m_data;
-		};
-		void setData(const std::string& dataStr) {
-			try {
-				m_data = std::stoi(dataStr);
-			}
-			catch (...) {
-				throw std::runtime_error("Invalid int value: " + dataStr);
-			}
-		}
-	private:
-		int m_data;
-	};
 
-	class VarDouble : public VarBase {
-	public:
-		VarDouble(const std::string& name) {
-			setName(name);
-			m_data = 0;
-			setType(VarType::DOUBLE);
-		}
-		VarDouble(const std::string& name, std::shared_ptr<VarBase> data) {
-			setName(name);
-			std::shared_ptr<VarDouble> temp = std::dynamic_pointer_cast<VarDouble>(data);
-			m_data = temp->m_data;
-			setType(VarType::DOUBLE);
-		}
-		VarDouble(const std::string& name, double data) {
-			setName(name);
-			m_data = data;
-			setType(VarType::DOUBLE);
-		};
-		VarDouble(const std::string& name, const std::string& dataStr) {
-			setName(name);
-			setData(dataStr);
-			setType(VarType::DOUBLE);
-		};
-		std::string getData() const {
-			return std::to_string(m_data);
-		}
-		void* getDataAddr() {
-			return &m_data;
-		};
-		void setData(const std::string& dataStr) {
-			try {
-				m_data = std::stod(dataStr);
-			}
-			catch (...) {
-				throw std::runtime_error("Invalid int value: " + dataStr);
-			}
-		}
-
-	private:
-		double m_data;
-	};
-
-	class VarChar : public VarBase {
-	public:
-		VarChar(const std::string& name) {
-			setName(name);
-			m_data = '\0';
-			setType(VarType::CHAR);
-		}
-		VarChar(const std::string& name, std::shared_ptr<VarBase> data) {
-			setName(name);
-			std::shared_ptr<VarChar> temp = std::dynamic_pointer_cast<VarChar>(data);
-			m_data = temp->m_data;
-			setType(VarType::CHAR);
-		}
-		VarChar(const std::string& name, char data) {
-			setName(name);
-			m_data = data;
-			setType(VarType::CHAR);
-		};
-		VarChar(const std::string& name, const std::string& dataStr) {
-			setName(name);
-			setData(dataStr);
-			setType(VarType::CHAR);
-		};
-		std::string getData() const {
-			return std::string(1, m_data);
-		}
-		void* getDataAddr() {
-			return &m_data;
-		};
-		void setData(const std::string& dataStr) {
-			if (dataStr.size() != 1) {
-				throw std::runtime_error("Char must be exactly 1 character");
-			}
-			m_data = dataStr[0];
-		}
-
-	private:
-		char m_data;
-	};
-
-
-
+	template <typename T, VarType TYPE, VarType REF_TYPE, VarType PTR_TYPE>
+	class VarNumeric;
 	template <typename T, VarType BASE_TYPE, VarType REF_TYPE, VarType PTR_TYPE>
 	class VarPtr;
+	template <typename T, VarType BASE_TYPE, VarType REF_TYPE, VarType PTR_TYPE>
+	class VarRef;
+
+
+	// 特化版本类型别名
+	using VarInt = VarNumeric<int, VarType::INT,VarType::INT_REF, VarType::INT_PTR>;
+	using VarDouble = VarNumeric<double, VarType::DOUBLE, VarType::DOUBLE_REF, VarType::DOUBLE_PTR>;
+	using VarChar = VarNumeric<char, VarType::CHAR, VarType::CHAR_REF, VarType::CHAR_PTR>;
+
+	// 特化int类型的引用和指针
+	using VarIntRef = VarRef<int, VarType::INT, VarType::INT_REF, VarType::INT_PTR>;
+	using VarIntPtr = VarPtr<int, VarType::INT, VarType::INT_REF, VarType::INT_PTR>;
+
+	// 特化double类型的引用和指针
+	using VarDoubleRef = VarRef<double, VarType::DOUBLE, VarType::DOUBLE_REF, VarType::DOUBLE_PTR>;
+	using VarDoublePtr = VarPtr<double, VarType::DOUBLE, VarType::DOUBLE_REF, VarType::DOUBLE_PTR>;
+
+	// 特化double类型的引用和指针
+	using VarCharRef = VarRef<char, VarType::CHAR, VarType::CHAR_REF, VarType::CHAR_PTR>;
+	using VarCharPtr = VarPtr<char, VarType::CHAR, VarType::CHAR_REF, VarType::CHAR_PTR>;
+
+
+	template <typename T, VarType TYPE, VarType REF_TYPE, VarType PTR_TYPE >
+	class VarNumeric : public VarBase {
+	public:
+		// 默认构造函数
+		VarNumeric(const std::string& name) : m_data(T{}) {
+			setName(name);
+			setType(TYPE);
+		}
+
+		// 从VarBase构造
+		VarNumeric(const std::string& name, std::shared_ptr<VarBase> data) {
+			setName(name);
+			if (isRef(data->getType())) {
+				auto temp = std::dynamic_pointer_cast<VarRef<T, TYPE, REF_TYPE,PTR_TYPE >>(data);
+				setData(temp->getData());
+			}
+			else {
+				auto temp = std::dynamic_pointer_cast<VarNumeric>(data);
+				m_data = temp->m_data;
+			}
+			setType(TYPE);
+		}
+
+		// 从具体值构造
+		VarNumeric(const std::string& name, T data) : m_data(data) {
+			setName(name);
+			setType(TYPE);
+		}
+
+		// 从字符串构造
+		VarNumeric(const std::string& name, const std::string& dataStr) {
+			setName(name);
+			setData(dataStr);
+			setType(TYPE);
+		}
+
+		// 获取数据字符串表示
+		std::string getData() const override {
+			if constexpr (std::is_same_v<T, char>) {
+				return std::string(1, m_data);
+			}
+			else {
+				return std::to_string(m_data);
+			}
+		}
+
+		// 获取数据地址
+		void* getDataAddr() override {
+			return &m_data;
+		}
+
+		// 设置数据
+		void setData(const std::string& dataStr) override {
+			if constexpr (std::is_same_v<T, char>) {
+				if (dataStr.size() != 1) {
+					throw std::runtime_error("Char must be exactly 1 character");
+				}
+				m_data = dataStr[0];
+			}
+			else if constexpr (std::is_same_v<T, int>) {
+				try {
+					m_data = std::stoi(dataStr);
+				}
+				catch (...) {
+					throw std::runtime_error("Invalid int value: " + dataStr);
+				}
+			}
+			else if constexpr (std::is_same_v<T, double>) {
+				try {
+					m_data = std::stod(dataStr);
+				}
+				catch (...) {
+					throw std::runtime_error("Invalid double value: " + dataStr);
+				}
+			}
+		}
+
+		// 获取原始数据
+		T getRawData() const {
+			return m_data;
+		}
+
+	private:
+		T m_data;
+	};
+
 
 	template <typename T, VarType BASE_TYPE, VarType REF_TYPE, VarType PTR_TYPE>
 	class VarRef : public VarBase {
 	public:
+		friend class VarNumeric<T, BASE_TYPE, REF_TYPE, PTR_TYPE>;
 		friend class VarPtr<T, BASE_TYPE, REF_TYPE, PTR_TYPE>;
 		friend std::shared_ptr<VarBase> deReference(std::shared_ptr<VarBase> var);
 		friend void rePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 		friend void sharePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
+		friend void shareRef(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 
 		VarRef(const std::string& name, std::shared_ptr<VarBase> tar) {
 			if (tar->getType() == BASE_TYPE)
@@ -271,6 +277,12 @@ namespace thz {
 			}
 			else
 				throw std::runtime_error("params not match ref type");
+			setName(name);
+			setType(REF_TYPE);
+		}
+
+		VarRef(const std::string& name) {
+			m_data = nullptr;
 			setName(name);
 			setType(REF_TYPE);
 		}
@@ -350,13 +362,6 @@ namespace thz {
 		std::shared_ptr<VarBase> m_data;
 	};
 
-	// 特化int类型的引用和指针
-	using VarIntRef = VarRef<int, VarType::INT, VarType::INT_REF, VarType::INT_PTR>;
-	using VarIntPtr = VarPtr<int, VarType::INT, VarType::INT_REF, VarType::INT_PTR>;
-
-	// 特化double类型的引用和指针
-	using VarDoubleRef = VarRef<double, VarType::DOUBLE, VarType::DOUBLE_REF, VarType::DOUBLE_PTR>;
-	using VarDoublePtr = VarPtr<double, VarType::DOUBLE, VarType::DOUBLE_REF, VarType::DOUBLE_PTR>;
 
 
 

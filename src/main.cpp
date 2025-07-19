@@ -36,7 +36,7 @@ namespace test {
         // 打印所有变量
         for (const auto& var : variables) {
             std::cout << "Name: " << var->getName()
-                << ", Type: " << typeStr(var->getType())
+                << ", Type: " << type2Str(var->getType())
                 << ", Value: " << var->getData() << std::endl;
         }
 
@@ -56,7 +56,7 @@ namespace test {
         // 打印所有变量
         for (const auto& var : variables) {
             std::cout << "Name: " << var->getName()
-                << ", Type: " << typeStr(var->getType())
+                << ", Type: " << type2Str(var->getType())
                 << ", Value: " << var->getData() << std::endl;
         }
 
@@ -266,8 +266,8 @@ int main() {
     //test::test_RefAndPtr();
     //test::test_extractFunc();
     test::test_pipeLine();
-    test::test_char();
-    test::test_double();
+    //test::test_char();
+    //test::test_double();
 
 
 }

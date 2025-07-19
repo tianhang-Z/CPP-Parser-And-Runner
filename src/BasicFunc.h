@@ -33,7 +33,7 @@ namespace thz {
 			m_formalArgs = func.m_formalArgs;
 			m_funcStatements = func.m_funcStatements;
 			VarType returnType = func.getReturnVar()->getType();
-			setReturnVar(typeStr(returnType));
+			setReturnVar(type2Str(returnType));
 		};
 
 
@@ -91,7 +91,7 @@ namespace thz {
 		void parseStatement(const std::string& stmt);
 		void parseVariableDeclaration(const std::string& stmt);
 		void parseAssignment(const std::string& stmt);
-		void doAssignment(std::shared_ptr<VarBase> leftVar, const std::string& rightExpr, bool leftDeref=false);
+		void doAssignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr, bool leftDeref=false);
 		void parseReturnStatement(const std::string& stmt);
 	};
 
