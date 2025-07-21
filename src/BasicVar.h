@@ -73,8 +73,8 @@ namespace thz {
 	std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, std::shared_ptr<VarBase> value);
 
 
-	std::shared_ptr<VarBase> createVariableRef(VarType type, const std::string& name, std::shared_ptr<VarBase> tar);
-	std::shared_ptr<VarBase> createVariablePtr(VarType type, const std::string& name, std::shared_ptr<VarBase> tar,bool shareData=false);
+	std::shared_ptr<VarBase> createVariableRef(VarType type, const std::string& name, std::shared_ptr<VarBase> source);
+	std::shared_ptr<VarBase> createVariablePtr(VarType type, const std::string& name, std::shared_ptr<VarBase> source,bool shareData=false);
 
 
 	std::shared_ptr<VarBase> createVarByTemp(VarType type, std::string paramName, std::string argValue);
@@ -268,11 +268,11 @@ namespace thz {
 		friend void sharePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 		friend void shareRef(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 
-		VarRef(const std::string& name, std::shared_ptr<VarBase> tar) {
-			if (tar->getType() == BASE_TYPE)
-				m_data = tar;
-			else if (tar->getType() == REF_TYPE) {
-				auto temp = std::dynamic_pointer_cast<VarRef>(tar);
+		VarRef(const std::string& name, std::shared_ptr<VarBase> source) {
+			if (source->getType() == BASE_TYPE)
+				m_data = source;
+			else if (source->getType() == REF_TYPE) {
+				auto temp = std::dynamic_pointer_cast<VarRef>(source);
 				m_data = temp->m_data;
 			}
 			else
@@ -311,25 +311,25 @@ namespace thz {
 		friend void rePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 		friend void sharePtr(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 
-		VarPtr(const std::string& name, std::shared_ptr<VarBase> tar, bool shareData) {
+		VarPtr(const std::string& name, std::shared_ptr<VarBase> source, bool shareData) {
 			if (shareData) {
 				// 可以从指针创建指针 int* p1=p2，二者共享数据
-				if (tar->getType() == PTR_TYPE) {
-					auto temp = std::dynamic_pointer_cast<VarPtr>(tar);
+				if (source->getType() == PTR_TYPE) {
+					auto temp = std::dynamic_pointer_cast<VarPtr>(source);
 					m_data = temp->m_data;
 				}
-				else if (tar->getType() == REF_TYPE) {
+				else if (source->getType() == REF_TYPE) {
 					// 可以从引用创建指针 int* p=&r，其中r是引用，此时共享数据
-					auto temp = std::dynamic_pointer_cast<VarRef<T, BASE_TYPE, REF_TYPE, PTR_TYPE>>(tar);
+					auto temp = std::dynamic_pointer_cast<VarRef<T, BASE_TYPE, REF_TYPE, PTR_TYPE>>(source);
 					m_data = temp->m_data;
 				}
 				else {
-					throw std::runtime_error("tar is not a pointer");
+					throw std::runtime_error("source is not a pointer");
 				}
 			}
 			else {
-				if (tar->getType() == BASE_TYPE || tar->getType() == REF_TYPE)
-					m_data = tar;
+				if (source->getType() == BASE_TYPE || source->getType() == REF_TYPE)
+					m_data = source;
 				else
 					throw std::runtime_error("params not match ref type");
 			}
@@ -347,6 +347,7 @@ namespace thz {
 			m_data->setData(dataStr);
 		};
 
+		//获取地址
 		std::string getData() const {
 			std::stringstream ss;
 			ss << m_data;

@@ -56,20 +56,20 @@ namespace thz {
     }
 
     // 引用可以从基本类型和引用创建
-    bool isValidReferenceSource(VarType sourceType, VarType refType) {
-        for (const auto& tr : supportedTypes) {
-            if (refType == tr.ref) {
-                return sourceType == tr.base || sourceType == tr.ref;
+    bool isValidRefSource(VarType tar, VarType source) {
+        for (const auto& group : supportedTypes) {
+            if (tar == group.ref) {
+                return source == group.base || source == group.ref;
             }
         }
         return false;
     }
 
     // 指针可以从指针、引用和基本变量创建
-    bool isValidPointerSource(VarType sourceType, VarType ptrType) {
-        for (const auto& tr : supportedTypes) {
-            if (ptrType == tr.ptr) {
-                return sourceType == tr.base || sourceType == tr.ref || sourceType == tr.ptr;
+    bool isValidPointerSource(VarType tar, VarType source) {
+        for (const auto& group : supportedTypes) {
+            if (tar == group.ptr) {
+                return source == group.base || source == group.ref || source == group.ptr;
             }
         }
         return false;
@@ -90,6 +90,14 @@ namespace thz {
             std::shared_ptr<VarIntRef> ret = std::dynamic_pointer_cast<VarIntRef>(var);
             return ret->m_data;
         }
+        case VarType::DOUBLE_PTR: {
+            std::shared_ptr<VarDoublePtr> ret = std::dynamic_pointer_cast<VarDoublePtr>(var);
+            return ret->m_data;
+        }
+        case VarType::DOUBLE_REF: {
+            std::shared_ptr<VarDoubleRef> ret = std::dynamic_pointer_cast<VarDoubleRef>(var);
+            return ret->m_data;
+        }
         default: {
             throw std::runtime_error("Unsupported variable type");
         }
@@ -104,6 +112,12 @@ namespace thz {
         case VarType::INT_REF: {
             std::shared_ptr<VarIntRef> temp_var = std::dynamic_pointer_cast<VarIntRef>(var);
             std::shared_ptr<VarIntRef> temp_target = std::dynamic_pointer_cast<VarIntRef>(target);
+            temp_var->m_data = temp_target->m_data;
+            break;
+        }
+        case VarType::DOUBLE_REF: {
+            std::shared_ptr<VarDoubleRef> temp_var = std::dynamic_pointer_cast<VarDoubleRef>(var);
+            std::shared_ptr<VarDoubleRef> temp_target = std::dynamic_pointer_cast<VarDoubleRef>(target);
             temp_var->m_data = temp_target->m_data;
             break;
         }
@@ -124,6 +138,12 @@ namespace thz {
             temp_var->m_data = temp_target->m_data;
             break;
         }
+        case VarType::DOUBLE_PTR: {
+            std::shared_ptr<VarDoublePtr> temp_var = std::dynamic_pointer_cast<VarDoublePtr>(var);
+            std::shared_ptr<VarDoublePtr> temp_target = std::dynamic_pointer_cast<VarDoublePtr>(target);
+            temp_var->m_data = temp_target->m_data;
+            break;
+        }
         default: {
             throw std::runtime_error("Unsupported variable type");
         }
@@ -137,6 +157,11 @@ namespace thz {
         switch (var->getType()) {
         case VarType::INT_PTR: {
             std::shared_ptr<VarIntPtr> temp = std::dynamic_pointer_cast<VarIntPtr>(var);
+            temp->m_data = target;
+            break;
+        }
+        case VarType::DOUBLE_PTR: {
+            std::shared_ptr<VarDoublePtr> temp = std::dynamic_pointer_cast<VarDoublePtr>(var);
             temp->m_data = target;
             break;
         }
@@ -176,7 +201,7 @@ namespace thz {
     }
 
 
-
+    // createVariable by double value , 运算器的实现是基于double的 , 所以应该支持从double创建基本变量
     std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, double value) {
         std::shared_ptr<VarBase> var;
         switch (type) {
@@ -205,178 +230,141 @@ namespace thz {
         return var;
     }
 
-    std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, std::shared_ptr<VarBase> value) {
-        std::shared_ptr<VarBase> var;
-        switch (type) {
-        case VarType::VOID: {
-            throw std::runtime_error("void has no data");
-            break;
-        }    
-        case VarType::INT: {
-            var = std::make_shared<VarInt>(name, value);
-            break;
-        }
-        case VarType::DOUBLE: {
-            var = std::make_shared<VarDouble>(name, value);
-            break;
-        }
-        case VarType::CHAR: {
-            var = std::make_shared<VarChar>(name, value);
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unsupported variable type");
-        }
-        }
-        return var;
+
+    namespace {
+        // 特化映射
+        template <VarType Type>
+        struct Type2ClassMap;
+
+        template <> struct Type2ClassMap<VarType::INT> { using type = VarInt; };
+        template <> struct Type2ClassMap<VarType::DOUBLE> { using type = VarDouble; };
+        template <> struct Type2ClassMap<VarType::CHAR> { using type = VarChar; };
+
+        template <> struct Type2ClassMap<VarType::INT_PTR> { using type = VarIntPtr; };
+        template <> struct Type2ClassMap<VarType::CHAR_PTR> { using type = VarCharPtr; };
+        template <> struct Type2ClassMap<VarType::DOUBLE_PTR> { using type = VarDoublePtr; };
+
+        template <> struct Type2ClassMap<VarType::INT_REF> { using type = VarIntRef; };
+        template <> struct Type2ClassMap<VarType::CHAR_REF> { using type = VarCharRef; };
+        template <> struct Type2ClassMap<VarType::DOUBLE_REF> { using type = VarDoubleRef; };
+
     }
 
-    std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, const std::string& initialValue) {
-        std::shared_ptr<VarBase> var;
+    template <VarType Type>
+    std::shared_ptr<VarBase> createVariableImpl(const std::string& name, std::shared_ptr<VarBase> value) {
+        if constexpr (Type == VarType::VOID) {
+            throw std::runtime_error("void has no data");
+        }
+        else {
+            using NumericType = typename Type2ClassMap<Type>::type;
+            return std::make_shared<NumericType>(name, value);
+        }
+    }
+
+    // 创建非指针和引用的基本类型
+    std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, std::shared_ptr<VarBase> value) {
         switch (type) {
-        case VarType::VOID: {
-            if (!initialValue.empty())
+        case VarType::VOID:    return createVariableImpl<VarType::VOID>(name, value);
+        case VarType::INT:     return createVariableImpl<VarType::INT>(name, value);
+        case VarType::DOUBLE:  return createVariableImpl<VarType::DOUBLE>(name, value);
+        case VarType::CHAR:    return createVariableImpl<VarType::CHAR>(name, value);
+        default: throw std::runtime_error("Unsupported variable type");
+        }
+    }
+
+    template <VarType Type>
+    std::shared_ptr<VarBase> createVariableImpl(const std::string& name, const std::string& initialValue) {
+        if constexpr (Type == VarType::VOID) {
+            if (!initialValue.empty()) {
                 throw std::runtime_error("void has no data");
-            else
-                var = std::make_shared<VarVoid>(name);
-            break; 
+            }
+            return std::make_shared<VarVoid>(name);
         }
-        case VarType::INT: {
-            if (!initialValue.empty())
-                var = std::make_shared<VarInt>(name, initialValue);
-            else
-                var = std::make_shared<VarInt>(name);
-            break; 
-        }
-        case VarType::CHAR: {
+        else if constexpr (Type == VarType::CHAR) {
             if (!initialValue.empty()) {
                 if (initialValue.size() != 1) {
                     throw std::runtime_error("Char must be exactly 1 character");
                 }
-                var = std::make_shared<VarChar>(name, initialValue[0]);
+                return std::make_shared<VarChar>(name, initialValue[0]);
             }
             else {
-                var = std::make_shared<VarChar>(name);
+                return std::make_shared<VarChar>(name);
             }
-            break; 
         }
-        case VarType::DOUBLE: {
-            if (!initialValue.empty())
-                var = std::make_shared<VarDouble>(name, initialValue);
-            else
-                var = std::make_shared<VarDouble>(name);
-            break; 
-        }
-        default: {
-            throw std::runtime_error("Unsupported variable type");
-        }
-        }
-        return var;
-    }
-
-
-
-
-    std::shared_ptr<VarBase> createVariableRef(VarType type, const std::string& name, std::shared_ptr<VarBase> tar) {
-
-        std::shared_ptr<VarBase> var;
-        switch (type) {
-        case VarType::INT_REF: {
-            if (tar == nullptr) {
-                if (name != "return_var") //支持返回值为引用 预先创建一个空指针  
-                    throw std::runtime_error("ref must initialize when declare");
-                else
-                    var = std::make_shared<VarIntRef>(name);
+        else {
+            using NumericType = typename Type2ClassMap<Type>::type;
+            if (!initialValue.empty()) {
+                return std::make_shared<NumericType>(name, initialValue);
             }
             else {
-                if (tar->getType() != VarType::INT &&
-                    tar->getType() != VarType::INT_REF) {
-                    throw std::runtime_error("type not match");
-                }
-                var = std::make_shared<VarIntRef>(name, tar);
+                return std::make_shared<NumericType>(name);
             }
-            break;
         }
-        case VarType::CHAR_REF: {
-            if (tar->getType() != VarType::CHAR &&
-                tar->getType() != VarType::CHAR_REF) {
-                throw std::runtime_error("type not match");
-            }
-            if (tar == nullptr && name != "return_var") //支持返回值为引用 预先创建一个空指针  
-                throw std::runtime_error("ref must initialize when declare");
-            else
-                var = std::make_shared<VarCharRef>(name, tar);
-            break;
+    }
+    std::shared_ptr<VarBase> createVariable(VarType type, const std::string& name, const std::string& initialValue) {
+        switch (type) {
+        case VarType::VOID:    return createVariableImpl<VarType::VOID>(name, initialValue);
+        case VarType::INT:     return createVariableImpl<VarType::INT>(name, initialValue);
+        case VarType::DOUBLE:  return createVariableImpl<VarType::DOUBLE>(name, initialValue);
+        case VarType::CHAR:    return createVariableImpl<VarType::CHAR>(name, initialValue);
+        default: throw std::runtime_error("Unsupported variable type");
         }
-        case VarType::DOUBLE_REF: {
-            if (tar->getType() != VarType::DOUBLE &&
-                tar->getType() != VarType::DOUBLE_REF) {
-                throw std::runtime_error("type not match");
-            }
-            if (tar == nullptr && name != "return_var") //支持返回值为引用 预先创建一个空指针  
-                throw std::runtime_error("ref must initialize when declare");
-            else
-                var = std::make_shared<VarDoubleRef>(name, tar);
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unsupported variable type");
-        }
-        }
-        return var;
     }
 
-    std::shared_ptr<VarBase> createVariablePtr(VarType type, const std::string& name, std::shared_ptr<VarBase> tar,bool shareData) {
-        std::shared_ptr<VarBase> var;
-        switch (type) {
-        case VarType::INT_PTR: {
-            if (tar != nullptr) {
-                // 允许指针指向引用类型
-                if (tar->getType() != VarType::INT &&
-                    tar->getType() != VarType::INT_REF &&
-                    tar->getType() != VarType::INT_PTR) {
-                    throw std::runtime_error("type not match");
-                }
-                var = std::make_shared<VarIntPtr>(name, tar, shareData);
-            }
-            else
-                var = std::make_shared<VarIntPtr>(name);
-            break;
+
+
+    
+    template <VarType Type>
+    std::shared_ptr<VarBase> createVariablePtrImpl(const std::string& name, std::shared_ptr<VarBase> source, bool shareData) {
+        using PtrType = typename Type2ClassMap<Type>::type;
+
+        if (source != nullptr && !isValidPointerSource(Type,source->getType())) {
+            throw std::runtime_error("type not match");
         }
-        case VarType::CHAR_PTR: {
-            if (tar != nullptr) {
-                // 允许指针指向引用类型
-                if (tar->getType() != VarType::CHAR &&
-                    tar->getType() != VarType::CHAR_REF &&
-                    tar->getType() != VarType::CHAR_PTR) {
-                    throw std::runtime_error("type not match");
-                }
-                var = std::make_shared<VarCharPtr>(name, tar, shareData);
-            }
-            else
-                var = std::make_shared<VarCharPtr>(name);
-            break;
+
+        if (source) {
+            return std::make_shared<PtrType>(name, source, shareData);
         }
-        case VarType::DOUBLE_PTR: {
-            if (tar != nullptr) {
-                // 允许指针指向引用类型
-                if (tar->getType() != VarType::DOUBLE &&
-                    tar->getType() != VarType::DOUBLE_REF &&
-                    tar->getType() != VarType::DOUBLE_PTR) {
-                    throw std::runtime_error("type not match");
-                }
-                var = std::make_shared<VarDoublePtr>(name, tar, shareData);
-            }
-            else
-                var = std::make_shared<VarDoublePtr>(name);
-            break;
+        else {
+            return std::make_shared<PtrType>(name);
         }
-        default: {
-            throw std::runtime_error("Unsupported variable type");
-        }
-        }
-        return var;
     }
+    std::shared_ptr<VarBase> createVariablePtr(VarType type, const std::string& name, std::shared_ptr<VarBase> source, bool shareData) {
+        switch (type) {
+        case VarType::INT_PTR:    return createVariablePtrImpl<VarType::INT_PTR>(name, source, shareData);
+        case VarType::CHAR_PTR:   return createVariablePtrImpl<VarType::CHAR_PTR>(name, source, shareData);
+        case VarType::DOUBLE_PTR: return createVariablePtrImpl<VarType::DOUBLE_PTR>(name, source, shareData);
+        default: throw std::runtime_error("Unsupported variable type");
+        }
+    }
+
+  
+    template <VarType Type>
+    std::shared_ptr<VarBase> createVariableRefImpl(const std::string& name, std::shared_ptr<VarBase> source) {
+        using RefType = typename Type2ClassMap<Type>::type;
+
+        if (source == nullptr) {
+            if (name != "return_var") { // 支持返回值为引用（特殊处理）预先创建一个空指针
+                throw std::runtime_error("ref must initialize when declare");
+            }
+            return std::make_shared<RefType>(name);
+        }
+
+        if (!isValidRefSource(Type, source->getType())) {
+            throw std::runtime_error("type not match");
+        }
+        return std::make_shared<RefType>(name, source);
+    }
+    std::shared_ptr<VarBase> createVariableRef(VarType type, const std::string& name, std::shared_ptr<VarBase> source) {
+        switch (type) {
+        case VarType::INT_REF:    return createVariableRefImpl<VarType::INT_REF>(name, source);
+        case VarType::CHAR_REF:   return createVariableRefImpl<VarType::CHAR_REF>(name, source);
+        case VarType::DOUBLE_REF: return createVariableRefImpl<VarType::DOUBLE_REF>(name, source);
+        default: throw std::runtime_error("Unsupported variable type");
+        }
+    }
+
+
 
     // 临时值创建参 如 fun(1,2)
     std::shared_ptr<VarBase> createVarByTemp(VarType type, std::string paramName, std::string argValue) {
@@ -393,7 +381,7 @@ namespace thz {
 
     }
 
-    // 
+    
     std::shared_ptr<VarBase> createVarByVar(VarType type, std::string name, std::shared_ptr<VarBase> rightVar,
         bool createPtr , bool createRef , bool getAddr , bool deRef ) {
         if (createPtr && createRef)

@@ -10,7 +10,7 @@ void sum(double& a, double& b, double& out)
     out = c1 + b;
 }
 
-double mainFunc(int arg1, double arg2, double arg3)
+double mainFunc(double arg1, double arg2, double arg3)
 {
     double a = 0;
     sum(arg1, arg2, a);

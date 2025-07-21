@@ -266,8 +266,8 @@ int main() {
     //test::test_RefAndPtr();
     //test::test_extractFunc();
     test::test_pipeLine();
-    //test::test_char();
-    //test::test_double();
+    test::test_char();
+    test::test_double();
 
 
 }

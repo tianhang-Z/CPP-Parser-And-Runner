@@ -258,7 +258,7 @@ namespace thz {
             if (isPtr(retType) ) {
                 sharePtr(leftVar, ret);  // 如果返回指针和引用 , 则共享数据
             }
-            else if (isRef) {
+            else if (isRef(retType)) {
                 shareRef(leftVar, ret);
             }
             else {
