@@ -24,7 +24,7 @@ namespace thz {
 			m_calc(&m_varMap),  // 使用m_varMap的地址初始化m_calc
 			m_name(name),
 			m_formalArgs(formalArgs), m_funcStatements(funcStmt) {
-			setReturnVar(returnType);
+			set_return_var(returnType);
 		};
 		FuncBase(const FuncBase& func) {
 			m_varMap = std::map<std::string, std::shared_ptr<VarBase>>();
@@ -32,39 +32,39 @@ namespace thz {
 			m_name = func.m_name;
 			m_formalArgs = func.m_formalArgs;
 			m_funcStatements = func.m_funcStatements;
-			VarType returnType = func.getReturnVar()->getType();
-			setReturnVar(type2Str(returnType));
+			VarType returnType = func.get_return_var()->get_type();
+			set_return_var(type2Str(returnType));
 		};
 
 
-		std::shared_ptr<VarBase> runFunc(const std::string& actualArgs,FuncBase* parent);
-		std::shared_ptr<VarBase> getReturnVar() {
+		std::shared_ptr<VarBase> run_func(const std::string& actualArgs,FuncBase* parent);
+		std::shared_ptr<VarBase> get_return_var() {
 			return m_returnVar;
 		}
-		const std::shared_ptr<VarBase> getReturnVar() const {
+		const std::shared_ptr<VarBase> get_return_var() const {
 			return m_returnVar;
 		}
-		const std::string& getName() {
+		const std::string& get_name() {
 			return m_name;
 		}
-		const std::string& getFormalArgs() {
+		const std::string& get_formal_args() {
 			return m_formalArgs;
 		}
-		void displayVarMap() {
+		void display_var_map() {
 			for (auto& ele : m_varMap) {
-				displayVar(ele.second);
+				DisplayVar(ele.second);
 			}
 		}
-		void setParentFunc(FuncBase* parent) {
+		void set_parent_func(FuncBase* parent) {
 			parentFunc = parent;
 		}
-		__var_map__& getVarMap() {
+		VarMap& get_var_map() {
 			return m_varMap;
 		}
-		const __var_map__& getVarMap() const {
+		const VarMap& get_var_map() const {
 			return m_varMap;
 		}
-		Calculator& getCalc() {
+		Calculator& get_calc() {
 			return m_calc;
 		}
 
@@ -72,7 +72,7 @@ namespace thz {
 		FuncBase* parentFunc;
 		Calculator m_calc;        // 每个func有自己的calculator
 
-		__var_map__ m_varMap;
+		VarMap m_varMap;
 
 		std::string m_name;
 		std::string m_formalArgs;       // 形参语句
@@ -81,37 +81,39 @@ namespace thz {
 
 		// 辅助方法
 
-		void setArgs(const std::string& actualArgs);
-		std::shared_ptr<VarBase> createArgsByParentVar(VarType type, std::string name, std::string argValue);
-		std::shared_ptr<VarBase> createVarBySelfVar(VarType type, std::string name, std::string argValue);
-		std::shared_ptr<VarBase> createVarByFunCallRet(std::string funcExpr);
+		void set_args(const std::string& actualArgs);
+		std::shared_ptr<VarBase> create_args_by_parentv_var(VarType type, std::string name, std::string argValue);
+		std::shared_ptr<VarBase> create_var_by_self_var(VarType type, std::string name, std::string argValue);
+		std::shared_ptr<VarBase> create_var_by_funcall_ret(std::string funcExpr);
 
-		void setReturnVar(const std::string& returnTypeStr);
-		void parseFunctionBody();
-		void parseStatement(const std::string& stmt);
-		void parseVariableDeclaration(const std::string& stmt);
-		void parseAssignment(const std::string& stmt);
-		void doAssignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr, bool leftDeref=false);
-		void parseReturnStatement(const std::string& stmt);
+		void set_return_var(const std::string& returnTypeStr);
+		void parse_function_body();
+		void parse_statement(const std::string& stmt);
+		void parse_variable_declaration(const std::string& stmt);
+		void parse_assignment(const std::string& stmt);
+		void do_assignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr, bool leftDeref=false);
+		void parse_return_statement(const std::string& stmt);
 	};
 
-
+	/*
+	singleton
+	*/
 	class FuncMap {
 	public:
 		FuncMap(const FuncMap&) = delete;
 		FuncMap& operator=(const FuncMap&) = delete;
 
-		static FuncMap& getFuncMap() {
+		static FuncMap& get_func_map() {
 			static FuncMap instance;
 			return instance;
 		}
 
 
-		void addFunc(const std::string& name, FuncBase* func) {
+		void add_func(const std::string& name, FuncBase* func) {
 			std::lock_guard<std::mutex> lock(m_mutex);
 			m_funcMap[name] = func;
 		}
-		std::shared_ptr<VarBase> callFunc(const std::string name, const std::string& actualArgs, FuncBase* parent) {
+		std::shared_ptr<VarBase> call_func(const std::string name, const std::string& actualArgs, FuncBase* parent) {
 
 			auto it = m_funcMap.find(name);
 			if (it == m_funcMap.end()) {
@@ -119,10 +121,10 @@ namespace thz {
 			}
 			FuncBase copyFunc(*(it->second));
 
-			return copyFunc.runFunc(actualArgs,parent);
+			return copyFunc.run_func(actualArgs,parent);
 
 		}
-		FuncBase* createFunc(std::string name) {
+		FuncBase* create_func(std::string name) {
 			auto it = m_funcMap.find(name);
 			if (it == m_funcMap.end()) {
 				throw std::runtime_error("Function not found: " + name);
@@ -131,10 +133,10 @@ namespace thz {
 			return newFunc;
 
 		}
-		void showFunc() {
+		void show_func() {
 			for (auto ele : m_funcMap) {
 				std::cout << "name: " << ele.first << std::endl;
-				std::cout << "params:" << ele.second->getFormalArgs() << std::endl;
+				std::cout << "params:" << ele.second->get_formal_args() << std::endl;
 			}
 		}
 	private:

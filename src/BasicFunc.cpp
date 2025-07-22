@@ -4,7 +4,7 @@ namespace thz {
 
 
 
-    bool isVarDeclStmt(const std::string& stmt) {
+    bool IsVarDeclStmt(const std::string& stmt) {
         for (const char* type : { "int ", "int* ", "int& ",
                                 "double ", "double* ", "double& ",
                                 "char ", "char* ", "char& ",
@@ -16,16 +16,16 @@ namespace thz {
         return false;
     }
 
-    bool isAssignStmt(const std::string& stmt) {
+    bool IsAssignStmt(const std::string& stmt) {
         if (stmt.find('=') != std::string::npos) return true;
         else return false;
     }
-    bool isReturnStmt(const std::string& stmt) {
+    bool IsReturnStmt(const std::string& stmt) {
         if (stmt.find("return") == 0) return true;
         else return false;
     };
 
-    bool isFunCall(const std::string& stmt) {
+    bool IsFunCall(const std::string& stmt) {
         // 空字符串直接返回false
         if (stmt.empty())
             return false;
@@ -71,30 +71,30 @@ namespace thz {
 
 
     // 从函数调用返回值创建变量
-    std::shared_ptr<VarBase> FuncBase::createVarByFunCallRet(std::string funcExpr) {
-        std::shared_ptr<VarBase> ret = m_calc.evaluateFunCall(funcExpr, this);
+    std::shared_ptr<VarBase> FuncBase::create_var_by_funcall_ret(std::string funcExpr) {
+        std::shared_ptr<VarBase> ret = m_calc.evaluate_funCall(funcExpr, this);
         return ret;
     }
 
     // 传参
-    std::shared_ptr<VarBase> FuncBase::createArgsByParentVar(VarType type, std::string name, std::string argValue) {
-        __var_map__& parentVarMap = parentFunc->getVarMap();
-        std::shared_ptr<VarBase> var = createVarByVarMap(type,name,argValue,parentVarMap);
+    std::shared_ptr<VarBase> FuncBase::create_args_by_parentv_var(VarType type, std::string name, std::string argValue) {
+        VarMap& parentVarMap = parentFunc->get_var_map();
+        std::shared_ptr<VarBase> var = CreateVarByVarMap(type,name,argValue,parentVarMap);
         return var;
     }
 
     // 从已有变量创建
-    std::shared_ptr<VarBase> FuncBase::createVarBySelfVar(VarType type, std::string name, std::string argValue) {
-        std::shared_ptr<VarBase> var = createVarByVarMap(type, name, argValue, this->getVarMap());
+    std::shared_ptr<VarBase> FuncBase::create_var_by_self_var(VarType type, std::string name, std::string argValue) {
+        std::shared_ptr<VarBase> var = CreateVarByVarMap(type, name, argValue, this->get_var_map());
         return var;
     }
 
-    void FuncBase::setArgs(const std::string& actualArgs) {
+    void FuncBase::set_args(const std::string& actualArgs) {
         // 解析形参声明，如 "char a, int b, double c"
-        std::vector<std::string> formalParamDecls = split(m_formalArgs, ',');
+        std::vector<std::string> formalParamDecls = Split(m_formalArgs, ',');
 
         // 解析实际参数值，如 " 'x', 42, 3.14, a, b "  可以是value，也可以是父函数的变量
-        std::vector<std::string> argValues = split(actualArgs, ',');
+        std::vector<std::string> argValues = Split(actualArgs, ',');
 
         // 要求实参与形参数量一致 不支持默认参数
         if (formalParamDecls.size() != argValues.size()) {
@@ -104,8 +104,8 @@ namespace thz {
         m_varMap.clear();
 
         for (size_t i = 0; i < formalParamDecls.size(); ++i) {
-            std::string paramDecl = trim(formalParamDecls[i]);
-            std::string argValue = trim(argValues[i]);
+            std::string paramDecl = Trim(formalParamDecls[i]);
+            std::string argValue = Trim(argValues[i]);
 
             // 解析参数声明，如 "char a" 或 "int b" ;
             // 或者 int* c 要求*在变量类型一侧
@@ -114,8 +114,8 @@ namespace thz {
                 throw std::runtime_error("Invalid parameter declaration: " + paramDecl);
             }
 
-            std::string typeStr = trim(paramDecl.substr(0, spacePos));
-            std::string paramName = trim(paramDecl.substr(spacePos + 1));
+            std::string typeStr = Trim(paramDecl.substr(0, spacePos));
+            std::string paramName = Trim(paramDecl.substr(spacePos + 1));
 
 
             VarType type = str2Type(typeStr);
@@ -125,9 +125,9 @@ namespace thz {
 
             if (!argValue.empty()) {
                 if (parentFunc!=nullptr) 
-                    var = createArgsByParentVar(type, paramName, argValue);
+                    var = create_args_by_parentv_var(type, paramName, argValue);
                 else {   // 参数并非变量 而是具体的值 因为并非父函数调用的
-                        var = createVarByTemp(type, paramName, argValue);
+                        var = CreateVarByTemp(type, paramName, argValue);
                 }
             } else {
                 throw std::runtime_error("Argument mismatch");
@@ -136,49 +136,49 @@ namespace thz {
         }
     }
 
-    void FuncBase::setReturnVar(const std::string& returnTypeStr) {
+    void FuncBase::set_return_var(const std::string& returnTypeStr) {
         VarType returnType = str2Type(returnTypeStr);
-        if (isPtr(returnType))
-            m_returnVar = createVariablePtr(returnType, "return_var", nullptr);
-        else if (isRef(returnType))
-            m_returnVar = createVariableRef(returnType, "return_var", nullptr);
+        if (IsPtr(returnType))
+            m_returnVar = CreateVariablePtr(returnType, "return_var", nullptr);
+        else if (IsRef(returnType))
+            m_returnVar = CreateVariableRef(returnType, "return_var", nullptr);
         else 
-            m_returnVar = createVariable(returnType, "return_var", "");
+            m_returnVar = CreateVariable(returnType, "return_var", "");
     }
 
-    std::shared_ptr<VarBase> FuncBase::runFunc(const std::string& actualArgs, FuncBase* parent) {
-        setParentFunc(parent);
-        setArgs(actualArgs);
-        parseFunctionBody();
+    std::shared_ptr<VarBase> FuncBase::run_func(const std::string& actualArgs, FuncBase* parent) {
+        set_parent_func(parent);
+        set_args(actualArgs);
+        parse_function_body();
         return m_returnVar;   // 返回值是m_returnVar的拷贝
     } 
 
-    void FuncBase::parseFunctionBody() {
-        std::vector<std::string> statements = split(m_funcStatements, ';');
+    void FuncBase::parse_function_body() {
+        std::vector<std::string> statements = Split(m_funcStatements, ';');
 
         for (const std::string& stmt : statements) {
-            std::string trimmedStmt = trim(stmt);
+            std::string trimmedStmt = Trim(stmt);
             if (trimmedStmt.empty()) continue;
-            parseStatement(trimmedStmt);
+            parse_statement(trimmedStmt);
         }
     }
 
-    void FuncBase::parseStatement(const std::string& stmt) {
+    void FuncBase::parse_statement(const std::string& stmt) {
 
-        if (isVarDeclStmt(stmt))
-            parseVariableDeclaration(stmt);
-        else if (isAssignStmt(stmt))
-            parseAssignment(stmt);
-        else if (isReturnStmt(stmt))
-            parseReturnStatement(stmt);
-        else if (isFunCall(stmt)) 
-            m_calc.evaluateFunCall(stmt, this);
+        if (IsVarDeclStmt(stmt))
+            parse_variable_declaration(stmt);
+        else if (IsAssignStmt(stmt))
+            parse_assignment(stmt);
+        else if (IsReturnStmt(stmt))
+            parse_return_statement(stmt);
+        else if (IsFunCall(stmt)) 
+            m_calc.evaluate_funCall(stmt, this);
         else
             throw std::runtime_error("can not match stmt");
     }
 
-    void FuncBase::parseVariableDeclaration(const std::string& stmt) {
-        std::vector<std::string> parts = split(stmt, ' ');
+    void FuncBase::parse_variable_declaration(const std::string& stmt) {
+        std::vector<std::string> parts = Split(stmt, ' ');
         if (parts.size() < 2) {
             throw std::runtime_error("Invalid variable declaration: " + stmt);
         }
@@ -195,15 +195,15 @@ namespace thz {
         size_t equalPos = stmt.find('=');
         std::string valuePart;
         if (equalPos != std::string::npos) {
-            valuePart = trim(stmt.substr(equalPos + 1));
+            valuePart = Trim(stmt.substr(equalPos + 1));
             if (!valuePart.empty() && valuePart.back() == ';') {
                 valuePart.pop_back();
             }
         }
 
         VarType type = str2Type(typeStr);
-        bool createRef = isRef(type);
-        bool createPtr = isPtr(type);
+        bool createRef = IsRef(type);
+        bool createPtr = IsPtr(type);
 
         std::shared_ptr<VarBase> var;
         if (!valuePart.empty()) {
@@ -211,105 +211,105 @@ namespace thz {
             // 解析int* a=&b;  int* a=a; 
             // 解析int* a= doNothing(b);
             if (createPtr||createRef) {
-                if (isFunCall(valuePart)) {
+                if (IsFunCall(valuePart)) {
                     // int* a=fun(b)     int& a=fun(b)
-                    std::shared_ptr<VarBase> retVar = createVarByFunCallRet(valuePart);
-                    bool returnPtr = isPtr(retVar->getType());
-                    bool returnRef = isRef(retVar->getType());
-                    var = createVarByVar(type, name, retVar,createPtr,createRef);
+                    std::shared_ptr<VarBase> retVar = create_var_by_funcall_ret(valuePart);
+                    bool returnPtr = IsPtr(retVar->get_type());
+                    bool returnRef = IsRef(retVar->get_type());
+                    var = CreateVarByVar(type, name, retVar,createPtr,createRef);
                 }
                 else 
-                    var = createVarBySelfVar(type, name, valuePart); 
+                    var = create_var_by_self_var(type, name, valuePart); 
             } // 解析char c = 'A';
-            else if (type == VarType::CHAR && valuePart.size() >= 3 &&
+            else if (type == VarType::Char && valuePart.size() >= 3 &&
                 valuePart[0] == '\'' && valuePart.back() == '\'') {
                 char c = valuePart[1];
                 var = std::make_shared<VarChar>(name, c);
             } // 解析复杂计算语句  返回计算结果 
             else {
                 // 解析 int a=fun(b)
-                if (isFunCall(valuePart)) {
-                    std::shared_ptr<VarBase> ret = createVarByFunCallRet(valuePart);
-                    var = createVariable(type, name, ret);
+                if (IsFunCall(valuePart)) {
+                    std::shared_ptr<VarBase> ret = create_var_by_funcall_ret(valuePart);
+                    var = CreateVariable(type, name, ret);
                 }
                 else {
-                    double result = m_calc.evaluateExpression(valuePart, this);
-                    var = createVariable(type, name, result);
+                    double result = m_calc.evaluate_expression(valuePart, this);
+                    var = CreateVariable(type, name, result);
                 }
             }
         }
         else {
-            if (isPtr(type)) // 解析int* a;
-                var = createVariablePtr(type, name, nullptr);
+            if (IsPtr(type)) // 解析int* a;
+                var = CreateVariablePtr(type, name, nullptr);
             else  //解析 int a;
-                var = createVariable(type, name);
+                var = CreateVariable(type, name);
         }
 
         m_varMap[name] = std::move(var);
     }
 
-    void FuncBase::doAssignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr,bool leftDeref) {
-        VarType leftType = leftVar->getType();
+    void FuncBase::do_assignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr,bool leftDeref) {
+        VarType leftType = leftVar->get_type();
 
         // 处理 (int)a=sum(arg1,arg2)   (int*) a=sum(arg1,arg2)   (int&) a=sum(arg1,arg2)
-        if (isFunCall(rightExpr)) {
-            std::shared_ptr<VarBase> ret = createVarByFunCallRet(rightExpr);
-            VarType retType = ret->getType();
-            if (isPtr(retType) ) {
-                sharePtr(leftVar, ret);  // 如果返回指针和引用 , 则共享数据
+        if (IsFunCall(rightExpr)) {
+            std::shared_ptr<VarBase> ret = create_var_by_funcall_ret(rightExpr);
+            VarType retType = ret->get_type();
+            if (IsPtr(retType) ) {
+                SharePtr(leftVar, ret);  // 如果返回指针和引用 , 则共享数据
             }
-            else if (isRef(retType)) {
-                shareRef(leftVar, ret);
+            else if (IsRef(retType)) {
+                ShareRef(leftVar, ret);
             }
             else {
-                setBasicVar(leftVar, getDoubleValue(ret));
+                SetBasicVar(leftVar, GetDoubleValue(ret));
             }
         }
         // 解析引用
-        else if (isRef(leftType)) {
+        else if (IsRef(leftType)) {
             // 当leftType是返回值时 需要特殊处理
             // int& donothing(int& a) {return a;}
-            if (leftVar->getName() == "return_var") {
+            if (leftVar->get_name() == "return_var") {
                 auto it = m_varMap.find(rightExpr);
                 if (it == m_varMap.end())
                     throw std::runtime_error("can not get rightVar");
                 std::shared_ptr<VarBase> rightVar = it->second;
-                shareRef(leftVar, rightVar);
+                ShareRef(leftVar, rightVar);
             }
             else {
-                double result = m_calc.evaluateExpression(rightExpr, this);
-                setBasicVar(leftVar, result);
+                double result = m_calc.evaluate_expression(rightExpr, this);
+                SetBasicVar(leftVar, result);
             }
         }
         // 解析*p1=a+3;
-        else if (leftDeref && isPtr(leftType)) {
-            double result = m_calc.evaluateExpression(rightExpr, this);
-            setBasicVar(leftVar, result);
+        else if (leftDeref && IsPtr(leftType)) {
+            double result = m_calc.evaluate_expression(rightExpr, this);
+            SetBasicVar(leftVar, result);
         }
         // 处理p1=p2  (p1,p2都是指针）
-        else if (isPtr(leftType) && !leftDeref) {
+        else if (IsPtr(leftType) && !leftDeref) {
             auto rightVar = m_varMap.find(rightExpr);
             if (rightVar == m_varMap.end())
-                throw std::runtime_error("Undefined right variable: " + leftVar->getName());
-            if (!isPtr(rightVar->second->getType()))
+                throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
+            if (!IsPtr(rightVar->second->get_type()))
                 throw std::runtime_error("rigth var not a pointer");
-            sharePtr(leftVar, rightVar->second);
+            SharePtr(leftVar, rightVar->second);
         } //处理常规情况 a=b;
         else { 
-            double result = m_calc.evaluateExpression(rightExpr, this);
-            setBasicVar(leftVar, result);
+            double result = m_calc.evaluate_expression(rightExpr, this);
+            SetBasicVar(leftVar, result);
         }
     }
 
     // 赋值语句解析
-    void FuncBase::parseAssignment(const std::string& stmt) {
+    void FuncBase::parse_assignment(const std::string& stmt) {
         size_t equalPos = stmt.find('=');
         if (equalPos == std::string::npos) {
             throw std::runtime_error("Invalid assignment: " + stmt);
         }
 
-        std::string varName = trim(stmt.substr(0, equalPos));
-        std::string exprStr = trim(stmt.substr(equalPos + 1));
+        std::string varName = Trim(stmt.substr(0, equalPos));
+        std::string exprStr = Trim(stmt.substr(equalPos + 1));
         bool varDeRef = false;
         if (varName[0] == '*') {
             varDeRef = true;
@@ -323,17 +323,17 @@ namespace thz {
 
         std::shared_ptr<VarBase> var = it->second;
 
-        doAssignment(var, exprStr, varDeRef);
+        do_assignment(var, exprStr, varDeRef);
     }
 
     // 返回语句解析
-    void FuncBase::parseReturnStatement(const std::string& stmt) {
+    void FuncBase::parse_return_statement(const std::string& stmt) {
         size_t returnPos = stmt.find("return");
         if (returnPos != 0) {
             throw std::runtime_error("Invalid return statement: " + stmt);
         }
 
-        std::string exprStr = trim(stmt.substr(6));
+        std::string exprStr = Trim(stmt.substr(6));
         if (!exprStr.empty() && exprStr.back() == ';') {
             exprStr.pop_back();
         }
@@ -342,10 +342,10 @@ namespace thz {
             return;
         }
 
-        std::shared_ptr<VarBase> retVar = this->getReturnVar();
-        VarType retType = retVar->getType();
+        std::shared_ptr<VarBase> retVar = this->get_return_var();
+        VarType retType = retVar->get_type();
 
-        doAssignment(retVar, exprStr, false);
+        do_assignment(retVar, exprStr, false);
     }
 
 }

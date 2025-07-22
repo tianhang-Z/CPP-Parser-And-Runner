@@ -7,9 +7,9 @@
 #include <sstream>
 #include <vector>
 
-std::vector<std::string> split(const std::string& s, char delimiter);
-std::string trim(const std::string& str);
-char parseCharLiteral(const std::string& charValue);   // 去除可能的引号  如'a'
+std::vector<std::string> Split(const std::string& s, char delimiter);
+std::string Trim(const std::string& str);
+char ParseCharLiteral(const std::string& charValue);   // 去除可能的引号  如'a'
 
 
 // 存储函数信息的结构体
@@ -21,8 +21,8 @@ struct FuncInfo {
 };
 
 // 辅助函数声明
-std::string compress_whitespace(const std::string& str);
-std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath);
+std::string CompressWhitespace(const std::string& str);
+std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath);
 
 
 #endif // !__FILETOOLS_

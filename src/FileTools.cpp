@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <vector>
 
-std::vector<std::string> split(const std::string& s, char delimiter) {
+std::vector<std::string> Split(const std::string& s, char delimiter) {
     std::vector < std::string> tokens;
     std::istringstream tokenStream(s);
     std::string token;
@@ -16,7 +16,7 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
     return tokens;
 };
 
-std::string trim(const std::string& str) {
+std::string Trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
     if (first == std::string::npos) return "";
     size_t last = str.find_last_not_of(" \t\n\r");
@@ -25,8 +25,8 @@ std::string trim(const std::string& str) {
 
 
 // 去除可能的引号  如'a'
-char parseCharLiteral(const std::string& charValue) {
-    std::string value = trim(charValue);
+char ParseCharLiteral(const std::string& charValue) {
+    std::string value = Trim(charValue);
     if (value.size() >= 2 && value.front() == '\'' && value.back() == '\'') {
         value = value.substr(1, value.size() - 2);
     }
@@ -37,7 +37,7 @@ char parseCharLiteral(const std::string& charValue) {
 }
 
 // 压缩连续空白符为单个空格
-std::string compress_whitespace(const std::string& str) {
+std::string CompressWhitespace(const std::string& str) {
     std::string result;
     bool lastWasSpace = false;
 
@@ -53,11 +53,11 @@ std::string compress_whitespace(const std::string& str) {
             lastWasSpace = false;
         }
     }
-    return trim(result);
+    return Trim(result);
 }
 
 // 移除注释 (简单实现)
-std::string remove_comments(const std::string& str) {
+std::string RemoveComments(const std::string& str) {
     std::string result;
     bool inSingleLineComment = false;
     bool inMultiLineComment = false;
@@ -98,7 +98,7 @@ std::string remove_comments(const std::string& str) {
 }
 
 // 从文件中提取函数信息
-std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
+std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath) {
     std::map<std::string, FuncInfo> funcMap;
     std::ifstream file(filePath);
     if (!file.is_open()) {
@@ -109,7 +109,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
     // 读取整个文件内容并移除注释
     std::ostringstream oss;
     oss << file.rdbuf();
-    std::string content = remove_comments(oss.str());
+    std::string content = RemoveComments(oss.str());
     file.close();
 
     size_t pos = 0;
@@ -147,7 +147,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
         }
 
         std::string funcName = content.substr(nameStart, nameEnd - nameStart);
-        funcName = trim(funcName);
+        funcName = Trim(funcName);
 
         // 3. 从函数名往前找返回类型
         size_t returnTypeStart = nameStart;
@@ -159,7 +159,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
             returnTypeStart--;
 
         std::string returnType = content.substr(returnTypeStart, nameStart - returnTypeStart);
-        returnType = trim(returnType);
+        returnType = Trim(returnType);
 
         // 处理指针和引用返回类型 (确保保留*和&符号)
         if (returnType.find('*') != std::string::npos || returnType.find('&') != std::string::npos) {
@@ -170,7 +170,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
 
             if (symbolPos > 0 && std::isspace(static_cast<unsigned char>(returnType[symbolPos - 1]))) {
                 // 移除符号前的空格
-                returnType = trim(returnType.substr(0, symbolPos)) +
+                returnType = Trim(returnType.substr(0, symbolPos)) +
                     returnType.substr(symbolPos);
             }
         }
@@ -190,7 +190,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
         }
 
         std::string formalArgs = content.substr(parenStart + 1, paramEnd - parenStart - 2);
-        formalArgs = trim(formalArgs);
+        formalArgs = Trim(formalArgs);
 
         // 5. 查找函数体起始位置
         size_t bodyStart = paramEnd;
@@ -217,7 +217,7 @@ std::map<std::string, FuncInfo> extractFunctions(const std::string& filePath) {
         }
 
         std::string funcBody = content.substr(bodyStart + 1, bodyEnd - bodyStart - 2);
-        funcBody = compress_whitespace(funcBody);
+        funcBody = CompressWhitespace(funcBody);
 
         // 存入map
         if (!funcName.empty() && !returnType.empty()) {

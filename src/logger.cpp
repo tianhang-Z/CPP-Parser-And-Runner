@@ -1,6 +1,10 @@
 #include "logger.h"
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 
-namespace logger {
+namespace Logger {
     // 定义全局变量
     std::string logFileName;
     std::ofstream ofs;
@@ -13,10 +17,16 @@ namespace logger {
     };
 
     // 定义日志级别（条件初始化）
-    LOG_LEVEL logLevel =
+    LogLevel logLevel =
 #ifndef NDEBUG
-        LOG_LEVEL::LOG_LEVEL_DEBUG;
+        LogLevel::Debug;
 #else
-        LOG_LEVEL::LOG_LEVEL_INFO;
+        LogLevel::Info;
 #endif
-}
+
+
+
+
+
+
+} // namespace Logger

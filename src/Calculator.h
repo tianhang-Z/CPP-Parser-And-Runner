@@ -17,8 +17,8 @@ namespace thz {
 
     class FuncMap;
     class FuncBase;
-    double getDoubleValue(std::shared_ptr<VarBase> var);
-    std::string getStringValue(std::shared_ptr<VarBase> var);
+    double GetDoubleValue(std::shared_ptr<VarBase> var);
+    std::string GetStringValue(std::shared_ptr<VarBase> var);
 
     class Calculator {
     public:
@@ -29,19 +29,19 @@ namespace thz {
             : m_varMap(varMap) {
         }
 
-        double evaluateExpression(const std::string& expr, FuncBase* parent);
-        std::shared_ptr<VarBase> evaluateFunCall(const std::string& expr, FuncBase* parent);
+        double evaluate_expression(const std::string& expr, FuncBase* parent);
+        std::shared_ptr<VarBase> evaluate_funCall(const std::string& expr, FuncBase* parent);
     private:                 
         std::map<std::string, std::shared_ptr<VarBase>>* m_varMap;
 
         std::vector<std::string> tokenize(const std::string& expr);
-        double evaluateTokens(const std::vector<std::string>& tokens, FuncBase* parent);
-        std::shared_ptr<VarBase> evaluateFunCallTokens(const std::vector<std::string>& tokens,size_t& token_idx ,FuncBase* parent);
+        double evaluate_tokens(const std::vector<std::string>& tokens, FuncBase* parent);
+        std::shared_ptr<VarBase> evaluate_funcall_tokens(const std::vector<std::string>& tokens,size_t& token_idx ,FuncBase* parent);
 
-        void applyStackOperation(std::vector<double>& values,
+        void apply_stack_operation(std::vector<double>& values,
             std::vector<std::string>& ops);
-        double applyOperationDouble(double a, double b, const std::string& op);
-        int getPrecedence(const std::string& op);
+        double apply_operation_double(double a, double b, const std::string& op);
+        int get_precedence(const std::string& op);
 
 
     };

@@ -3,7 +3,7 @@
 
 namespace thz {
 
-bool isOp(const std::string& str) {
+bool IsOp(const std::string& str) {
     if (str == "+" || str == "-" || str == "*" || str == "/" || str == "@")
         return true;
     else return false;
@@ -11,32 +11,34 @@ bool isOp(const std::string& str) {
 
 
 
-std::string getStringValue(std::shared_ptr<VarBase> var) {
+std::string GetStringValue(std::shared_ptr<VarBase> var) {
     if (!var) throw std::runtime_error("Null variable");
 
-    if (var->getType() == VarType::CHAR) {
-        double c = var->getData()[0];
+    if (var->get_type() == VarType::Char) {
+        double c = var->get_data()[0];
         return std::to_string(static_cast<int>(c));
     } // double可作为int进行运算
-    return var->getData();
+    return var->get_data();
 }
 
-double getDoubleValue(std::shared_ptr<VarBase> var) {
+double GetDoubleValue(std::shared_ptr<VarBase> var) {
     if (!var) throw std::runtime_error("Null variable");
 
     try {
-        if (var->getType() == VarType::CHAR) {
-            return static_cast<double>(var->getData()[0]);
+        if (var->get_type() == VarType::Char) {
+            return static_cast<double>(var->get_data()[0]);
         }
-        return std::stod(var->getData());     // int和char统一用double处理
+        return std::stod(var->get_data());     // int和char统一用double处理
     }
     catch (...) {
-        throw std::runtime_error("Conversion failed for: " + var->getData());
+        throw std::runtime_error("Conversion failed for: " + var->get_data());
     }
 }
 
+namespace {
+    enum class TokenType { NONE, NUMBER, IDENTIFIER, OP };
 
-enum class TokenType { NONE, NUMBER, IDENTIFIER ,OP };
+}
 
 //解析和分割expr
 std::vector<std::string> Calculator::tokenize(const std::string& expr) {
@@ -111,25 +113,25 @@ std::vector<std::string> Calculator::tokenize(const std::string& expr) {
     return tokens;
 }
 
-double Calculator::evaluateExpression(const std::string& expr, FuncBase* parent) {
+double Calculator::evaluate_expression(const std::string& expr, FuncBase* parent) {
     if (expr.empty()) return 0.0;
 
     std::vector<std::string> tokens = tokenize(expr);
-    return evaluateTokens(tokens,parent);
+    return evaluate_tokens(tokens,parent);
 }
 
-std::shared_ptr<VarBase> Calculator::evaluateFunCall(const std::string& expr, FuncBase* parent) {
+std::shared_ptr<VarBase> Calculator::evaluate_funCall(const std::string& expr, FuncBase* parent) {
     if (expr.empty()) return nullptr;
 
     std::vector<std::string> tokens = tokenize(expr);
     size_t token_idx = 0;
-    return evaluateFunCallTokens(tokens, token_idx, parent);
+    return evaluate_funcall_tokens(tokens, token_idx, parent);
 }
 
-std::shared_ptr<VarBase> Calculator::evaluateFunCallTokens(const std::vector<std::string>& tokens,size_t& tokens_idx, FuncBase* parent){
+std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<std::string>& tokens,size_t& tokens_idx, FuncBase* parent){
     while (tokens_idx < tokens.size()) {
         const std::string& token = tokens[tokens_idx];
-        DEBUG("%d token %s", tokens_idx, token.c_str());
+        LOG_DEBUG("%d token %s", tokens_idx, token.c_str());
 
         if (token.empty()) {
             tokens_idx++;
@@ -139,21 +141,22 @@ std::shared_ptr<VarBase> Calculator::evaluateFunCallTokens(const std::vector<std
         if (tokens_idx + 1 < tokens.size() && tokens[tokens_idx + 1] == "(" && isalpha(token[0])) {
             std::string funcName = token;
             tokens_idx += 2; // 跳过函数名和左括号
-            // 直接将sum(a,b)的实参"a,b"传入 callFunc, 其内部会根据父函数解析
+            // 直接将sum(a,b)的实参"a,b"传入 call_func, 其内部会根据父函数解析
             std::string actualArgs;
             while (tokens_idx < tokens.size() && tokens[tokens_idx] != ")") {
                 actualArgs += tokens[tokens_idx];
                 tokens_idx++;
             }
             if (tokens_idx < tokens.size() && tokens[tokens_idx] == ")") tokens_idx++;
-            std::shared_ptr<VarBase> ret = FuncMap::getFuncMap().callFunc(funcName, actualArgs, parent);
+            std::shared_ptr<VarBase> ret = FuncMap::get_func_map().call_func(funcName, actualArgs, parent);
             return ret;
         }
     }
+    return nullptr;
 }
 
 
-double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBase* parent) {
+double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncBase* parent) {
     std::vector<double> values;
     std::vector<std::string> ops;
     size_t i = 0;
@@ -161,7 +164,7 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
 
     while (i < tokens.size()) {
         const std::string& token = tokens[i];
-        DEBUG("%d token %s", i, token.c_str());
+        LOG_DEBUG("%d token %s", i, token.c_str());
         
         if (token.empty()) {
             i++;
@@ -169,8 +172,8 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
         }
         // 处理函数调用
         if (i + 1 < tokens.size() && tokens[i + 1] == "(" && isalpha(token[0])) { 
-            std::shared_ptr<VarBase> ret = evaluateFunCallTokens(tokens, i, parent);
-            values.push_back(getDoubleValue(ret));
+            std::shared_ptr<VarBase> ret = evaluate_funcall_tokens(tokens, i, parent);
+            values.push_back(GetDoubleValue(ret));
             continue;
         }
 
@@ -183,17 +186,17 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
             // 当变量名前面有一个*，*前有一个其他符号时，需要解引用
             if ((i == 1 && tokens[i - 1] == "*") || 
                 (i >= 2 && tokens[i - 1] == "*") ||
-                (i >= 2 && tokens[i - 1] == "*" && isOp(tokens[i - 2])) ||
+                (i >= 2 && tokens[i - 1] == "*" && IsOp(tokens[i - 2])) ||
                 (i >= 2 && tokens[i - 1] == "*" && tokens[i - 2] == "(")) {
                 ops.pop_back(); // 取出*
-                values.push_back(getDoubleValue(deReference(it->second)));
+                values.push_back(GetDoubleValue(DeReference(it->second)));
             }
-            else if (isRef(it->second->getType())) {
+            else if (IsRef(it->second->get_type())) {
                 // 对引用的处理
-                values.push_back(getDoubleValue(deReference(it->second)));
+                values.push_back(GetDoubleValue(DeReference(it->second)));
             }
             else {
-                values.push_back(getDoubleValue(it->second));
+                values.push_back(GetDoubleValue(it->second));
             }
             i++;
         }
@@ -219,7 +222,7 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
         }
         else if (token == ")") {
             while (!ops.empty() && ops.back() != "(") {
-                applyStackOperation(values, ops);
+                apply_stack_operation(values, ops);
             }
             if (ops.empty()) throw std::runtime_error("Mismatched parentheses");
             ops.pop_back(); // 移除 '('
@@ -228,8 +231,8 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
         else if (token == "+" || token == "-" || token == "*" || token == "/") {
             while (!ops.empty() &&
                 (ops.back() == "@" || // 一元运算符优先级最高
-                    (getPrecedence(ops.back()) >= getPrecedence(token)))) {
-                applyStackOperation(values, ops);
+                    (get_precedence(ops.back()) >= get_precedence(token)))) {
+                apply_stack_operation(values, ops);
             }
             ops.push_back(token);
             i++;
@@ -241,7 +244,7 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
 
     // 处理剩余运算符
     while (!ops.empty()) {
-        applyStackOperation(values, ops);
+        apply_stack_operation(values, ops);
     }
 
     if (values.size() != 1) {
@@ -252,7 +255,7 @@ double Calculator::evaluateTokens(const std::vector<std::string>& tokens, FuncBa
 }
 
 
-void Calculator::applyStackOperation(std::vector<double>& values,
+void Calculator::apply_stack_operation(std::vector<double>& values,
     std::vector<std::string>& ops) {
     if (ops.empty()) return;
 
@@ -270,12 +273,12 @@ void Calculator::applyStackOperation(std::vector<double>& values,
 
         double b = values.back(); values.pop_back();
         double a = values.back(); values.pop_back();
-        values.push_back(applyOperationDouble(a, b, op));
+        values.push_back(apply_operation_double(a, b, op));
     }
 }
 
 
-double Calculator::applyOperationDouble(double a, double b,
+double Calculator::apply_operation_double(double a, double b,
     const std::string& op) {
     if (op == "+") return a + b;
     if (op == "-") return a - b;
@@ -287,7 +290,7 @@ double Calculator::applyOperationDouble(double a, double b,
     throw std::runtime_error("Unsupported operator: " + op);
 }
 
-int Calculator::getPrecedence(const std::string& op) {
+int Calculator::get_precedence(const std::string& op) {
     if (op == "@") return 3;  // 一元运算符最高优先级
     if (op == "*" || op == "/") return 2;
     if (op == "+" || op == "-") return 1;
