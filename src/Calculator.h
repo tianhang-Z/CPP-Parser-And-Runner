@@ -24,15 +24,17 @@ namespace thz {
     public:
         Calculator() {
             m_varMap = nullptr;
+            func = nullptr;
         }
-        Calculator(std::map<std::string, std::shared_ptr<VarBase>>* varMap)
-            : m_varMap(varMap) {
+        Calculator(std::map<std::string, std::shared_ptr<VarBase>>* varMap,FuncBase*  func)
+            : m_varMap(varMap),func(func) {
         }
 
         double evaluate_expression(const std::string& expr, FuncBase* parent);
         std::shared_ptr<VarBase> evaluate_funCall(const std::string& expr, FuncBase* parent);
     private:                 
         std::map<std::string, std::shared_ptr<VarBase>>* m_varMap;
+        FuncBase*  func;
 
         std::vector<std::string> tokenize(const std::string& expr);
         double evaluate_tokens(const std::vector<std::string>& tokens, FuncBase* parent);

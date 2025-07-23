@@ -156,6 +156,9 @@ std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<s
 }
 
 
+
+// 增加关键字处理逻辑
+// static_cast 
 double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncBase* parent) {
     std::vector<double> values;
     std::vector<std::string> ops;
@@ -176,9 +179,14 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
             values.push_back(GetDoubleValue(ret));
             continue;
         }
-
+        else if (token == "true") {
+            values.push_back(1);
+        }
+        else if (token == "false") {
+            values.push_back(0);
+        }
         // 处理变量名  
-        if (isalpha(token[0])) {
+        else if (isalpha(token[0])) {
             auto it = m_varMap->find(token);
             if (it == m_varMap->end()) {
                 throw std::runtime_error("Undefined variable: " + token);
@@ -198,7 +206,6 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
             else {
                 values.push_back(GetDoubleValue(it->second));
             }
-            i++;
         }
         // 处理数字
         else if (token.find_first_not_of("0123456789.-") == std::string::npos &&
@@ -209,7 +216,6 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
             catch (...) {
                 throw std::runtime_error("Invalid number: " + token);
             }
-            i++;
         }
         // 处理一元负号
         else if (token == "@") {
@@ -218,7 +224,6 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
         }
         else if (token == "(") {
             ops.push_back(token);
-            i++;
         }
         else if (token == ")") {
             while (!ops.empty() && ops.back() != "(") {
@@ -226,7 +231,6 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
             }
             if (ops.empty()) throw std::runtime_error("Mismatched parentheses");
             ops.pop_back(); // 移除 '('
-            i++;
         }
         else if (token == "+" || token == "-" || token == "*" || token == "/") {
             while (!ops.empty() &&
@@ -235,11 +239,11 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
                 apply_stack_operation(values, ops);
             }
             ops.push_back(token);
-            i++;
         }
         else {
             throw std::runtime_error("Invalid token: " + token);
         }
+        i++;
     }
 
     // 处理剩余运算符

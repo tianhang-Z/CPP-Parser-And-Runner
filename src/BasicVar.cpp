@@ -4,26 +4,27 @@
 
 namespace thz {
 
+    const std::set<std::string> VgTypeMap = { "int","char","double" ,"bool",
+            "int*","int&" ,"char*","char&","double*","double&", "bool*","bool&", "void" };
+
     bool IsValidVar(const std::string& type) {
-        static const std::set<std::string> typeMap = { "int","char","double" ,
-            "int*","int&" ,"char*","char*","double*","double&","void"};
-        return typeMap.count(type);
+        return VgTypeMap.count(type);
     }
 
     bool IsBasicType(VarType type) {
-        if (type ==VarType::Void|| type == VarType::Int || type == VarType::Char || type == VarType::Double)
+        if (type ==VarType::Void|| type == VarType::Int || type == VarType::Char || type == VarType::Double || type==VarType::Bool)
             return true;
         else return false;
     }
 
     bool IsPtr(VarType type) {
-        if (type == VarType::IntPtr ||type == VarType::DoublePtr||type == VarType::CharPtr)
+        if (type == VarType::IntPtr ||type == VarType::DoublePtr||type == VarType::CharPtr || type==VarType::BoolPtr)
             return true;
         else return false;
     }
 
     bool IsRef(VarType type) {
-        if (type == VarType::IntRef||type==VarType::DoubleRef||type==VarType::CharRef)
+        if (type == VarType::IntRef||type==VarType::DoubleRef||type==VarType::CharRef||type== VarType::BoolRef)
             return true;
         else return false;
     }
@@ -40,7 +41,9 @@ namespace thz {
         static const std::vector<TypeRelation> SupportedTypes = {
             {VarType::Int,    VarType::IntRef,    VarType::IntPtr},
             {VarType::Char,   VarType::CharRef,   VarType::CharPtr},
-            {VarType::Double, VarType::DoubleRef, VarType::DoublePtr}
+            {VarType::Double, VarType::DoubleRef, VarType::DoublePtr},
+            {VarType::Bool, VarType::BoolRef, VarType::BoolPtr}
+
         };
 
         // 特化映射
@@ -50,14 +53,17 @@ namespace thz {
         template <> struct Type2ClassMap<VarType::Int> { using ClassName = VarInt; };
         template <> struct Type2ClassMap<VarType::Double> { using ClassName = VarDouble; };
         template <> struct Type2ClassMap<VarType::Char> { using ClassName = VarChar; };
+        template <> struct Type2ClassMap<VarType::Bool> { using ClassName = VarChar; };
 
         template <> struct Type2ClassMap<VarType::IntPtr> { using ClassName = VarIntPtr; };
         template <> struct Type2ClassMap<VarType::CharPtr> { using ClassName = VarCharPtr; };
         template <> struct Type2ClassMap<VarType::DoublePtr> { using ClassName = VarDoublePtr; };
+        template <> struct Type2ClassMap<VarType::BoolPtr> { using ClassName = VarBoolPtr; };
 
         template <> struct Type2ClassMap<VarType::IntRef> { using ClassName = VarIntRef; };
         template <> struct Type2ClassMap<VarType::CharRef> { using ClassName = VarCharRef; };
         template <> struct Type2ClassMap<VarType::DoubleRef> { using ClassName = VarDoubleRef; };
+        template <> struct Type2ClassMap<VarType::BoolRef> { using ClassName = VarBoolRef; };
 
     } // anonymous namespace
 
@@ -121,6 +127,10 @@ namespace thz {
         case VarType::IntRef: return DeReferenceImpl<VarType::IntRef>(var);
         case VarType::DoublePtr: return DeReferenceImpl<VarType::DoublePtr>(var);
         case VarType::DoubleRef: return DeReferenceImpl<VarType::DoubleRef>(var);
+        case VarType::CharPtr: return DeReferenceImpl<VarType::CharPtr>(var);
+        case VarType::CharRef: return DeReferenceImpl<VarType::CharRef>(var);
+        case VarType::BoolPtr: return DeReferenceImpl<VarType::BoolPtr>(var);
+        case VarType::BoolRef: return DeReferenceImpl<VarType::BoolRef>(var);
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -143,6 +153,7 @@ namespace thz {
         case VarType::IntRef:    ShareRefImpl<VarType::IntRef>(var, target); break;
         case VarType::DoubleRef: ShareRefImpl<VarType::DoubleRef>(var, target); break;
         case VarType::CharRef:   ShareRefImpl<VarType::CharRef>(var, target); break;
+        case VarType::BoolRef:   ShareRefImpl<VarType::BoolRef>(var, target); break;
         default:  throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -167,6 +178,7 @@ namespace thz {
         case VarType::IntPtr:    SharePtrImpl<VarType::IntPtr>(var, target); break;
         case VarType::DoublePtr: SharePtrImpl<VarType::DoublePtr>(var, target); break;
         case VarType::CharPtr:   SharePtrImpl<VarType::CharPtr>(var, target); break;
+        case VarType::BoolPtr:   SharePtrImpl<VarType::BoolPtr>(var, target); break;
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -189,6 +201,7 @@ namespace thz {
         case VarType::IntPtr:    RePtrImpl<VarType::IntPtr>(var, target); break;
         case VarType::DoublePtr: RePtrImpl<VarType::DoublePtr>(var, target); break;
         case VarType::CharPtr:   RePtrImpl<VarType::CharPtr>(var, target); break;
+        case VarType::BoolPtr:   RePtrImpl<VarType::BoolPtr>(var, target); break;
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -218,6 +231,11 @@ namespace thz {
         case VarType::IntPtr:
             target->set_data(std::to_string(static_cast<int>(value)));
             break;
+        case VarType::Bool:
+        case VarType::BoolRef:
+        case VarType::BoolPtr:
+            target->set_data(std::to_string(static_cast<int>(value)));  // double转int 对bool赋值
+            break;
         default:
             throw std::runtime_error("Unsupported target type");
         }
@@ -243,6 +261,10 @@ namespace thz {
             var = std::make_shared<VarDouble>(name, value);
             break;
         }
+        case VarType::Bool: {
+            var = std::make_shared<VarBool>(name, static_cast<bool>(value));
+            break;
+        }
         case VarType::Char: {
             // 更安全的字符转换
             char c = static_cast<char>(value);
@@ -255,8 +277,6 @@ namespace thz {
         }
         return var;
     }
-
-
 
 
     template <VarType Type>
@@ -281,6 +301,7 @@ namespace thz {
         case VarType::Int:     return createVariableImpl<VarType::Int>(name, value);
         case VarType::Double:  return createVariableImpl<VarType::Double>(name, value);
         case VarType::Char:    return createVariableImpl<VarType::Char>(name, value);
+        case VarType::Bool:    return createVariableImpl<VarType::Bool>(name, value);
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -304,6 +325,19 @@ namespace thz {
                 return std::make_shared<VarChar>(name);
             }
         }
+        else if constexpr (Type == VarType::Bool) {
+            if (!initialValue.empty()) {
+                if (initialValue == "false")
+                    return std::make_shared<VarBool>(name, false);
+                else if (initialValue == "true")
+                    return std::make_shared<VarBool>(name, true);
+                else
+                    throw std::runtime_error("unvalid bool initialValue");
+            }
+            else {
+                return std::make_shared<VarBool>(name);
+            }
+        }
         else {  // else for int and double
             using ClassName = typename Type2ClassMap<Type>::ClassName;
             if (!initialValue.empty()) {
@@ -323,6 +357,7 @@ namespace thz {
         case VarType::Int:     return createVariableImpl<VarType::Int>(name, initialValue);
         case VarType::Double:  return createVariableImpl<VarType::Double>(name, initialValue);
         case VarType::Char:    return createVariableImpl<VarType::Char>(name, initialValue);
+        case VarType::Bool:    return createVariableImpl<VarType::Bool>(name, initialValue);
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -350,6 +385,7 @@ namespace thz {
         case VarType::IntPtr:    return createVariablePtrImpl<VarType::IntPtr>(name, source, shareData);
         case VarType::CharPtr:   return createVariablePtrImpl<VarType::CharPtr>(name, source, shareData);
         case VarType::DoublePtr: return createVariablePtrImpl<VarType::DoublePtr>(name, source, shareData);
+        case VarType::BoolPtr: return createVariablePtrImpl<VarType::BoolPtr>(name, source, shareData);
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -376,6 +412,7 @@ namespace thz {
         case VarType::IntRef:    return createVariableRefImpl<VarType::IntRef>(name, source);
         case VarType::CharRef:   return createVariableRefImpl<VarType::CharRef>(name, source);
         case VarType::DoubleRef: return createVariableRefImpl<VarType::DoubleRef>(name, source);
+        case VarType::BoolRef: return createVariableRefImpl<VarType::BoolRef>(name, source);
         default: throw std::runtime_error("Unsupported variable type");
         }
     }
@@ -393,7 +430,7 @@ namespace thz {
             ret = std::make_shared<VarChar>(paramName, c);
         }
         else {
-            // 对于int和double类型，直接使用字符串表示
+            // 对于int和double和bool类型，直接使用字符串创建
             ret = CreateVariable(type, paramName, argValue);
         }
         return ret;

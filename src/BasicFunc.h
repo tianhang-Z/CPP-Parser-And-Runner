@@ -21,14 +21,14 @@ namespace thz {
 
 		FuncBase(const std::string& returnType, const std::string& name, const std::string& formalArgs, const std::string& funcStmt)
 			:m_varMap(),
-			m_calc(&m_varMap),  // 使用m_varMap的地址初始化m_calc
+			m_calc(&m_varMap,this),  // 使用m_varMap的地址初始化m_calc
 			m_name(name),
 			m_formalArgs(formalArgs), m_funcStatements(funcStmt) {
 			set_return_var(returnType);
 		};
 		FuncBase(const FuncBase& func) {
 			m_varMap = std::map<std::string, std::shared_ptr<VarBase>>();
-			m_calc = Calculator(&m_varMap);
+			m_calc = Calculator(&m_varMap,this);
 			m_name = func.m_name;
 			m_formalArgs = func.m_formalArgs;
 			m_funcStatements = func.m_funcStatements;
@@ -87,11 +87,13 @@ namespace thz {
 		std::shared_ptr<VarBase> create_var_by_funcall_ret(std::string funcExpr);
 
 		void set_return_var(const std::string& returnTypeStr);
+		void parse_braces_body(const std::string& bracesBody);
 		void parse_function_body();
 		void parse_statement(const std::string& stmt);
 		void parse_variable_declaration(const std::string& stmt);
 		void parse_assignment(const std::string& stmt);
-		void do_assignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr, bool leftDeref=false);
+		void parse_loop_for(const std::string& stmt);
+		void do_assignment(std::shared_ptr<VarBase>& leftVar, std::string& rightExpr, bool leftDeref=false);
 		void parse_return_statement(const std::string& stmt);
 	};
 
@@ -113,6 +115,8 @@ namespace thz {
 			std::lock_guard<std::mutex> lock(m_mutex);
 			m_funcMap[name] = func;
 		}
+
+		// 支持重载 name+actualArgs组成唯一标识 name+formalArgs也组成唯一标识
 		std::shared_ptr<VarBase> call_func(const std::string name, const std::string& actualArgs, FuncBase* parent) {
 
 			auto it = m_funcMap.find(name);

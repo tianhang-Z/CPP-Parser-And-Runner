@@ -5,11 +5,8 @@ namespace thz {
 
 
     bool IsVarDeclStmt(const std::string& stmt) {
-        for (const char* type : { "int ", "int* ", "int& ",
-                                "double ", "double* ", "double& ",
-                                "char ", "char* ", "char& ",
-                                "void ", "void* " }) {
-            if (stmt.find(type) == 0) {
+        for (const std::string& varType : VgTypeMap) {
+            if (stmt.find(varType) == 0) {
                 return true;
             }
         }
@@ -67,6 +64,59 @@ namespace thz {
             return false;
 
         return true; // 所有条件满足，是单独的函数调用
+    }
+
+    char GetCompareMethod(const std::string& compareStr) {
+        if (compareStr.find(">=") != std::string::npos) return 'g'; // >=
+        if (compareStr.find("<=") != std::string::npos) return 'l'; // <=
+        if (compareStr.find("==") != std::string::npos) return 'e'; // ==
+
+        if (compareStr.find('<') != std::string::npos) return '<';
+        if (compareStr.find('>') != std::string::npos) return '>';
+
+        throw std::runtime_error("Only support <, >, <=, >=, ==");
+    }
+
+    int ExtractEndNum(const std::string& compareStr) {
+        // 提取比较运算符后面的数字（如 "i<5" 中的 5）
+        size_t opPos = compareStr.find_first_of("<>=");
+        if (opPos == std::string::npos) {
+            throw std::runtime_error("Invalid comparison operator");
+        }
+
+        // 跳过比较运算符（可能多字符如 <=、>=）
+        if (compareStr.substr(opPos, 2) == "<=" || compareStr.substr(opPos, 2) == ">=" || compareStr.substr(opPos, 2) == "==") {
+            opPos += 2;
+        }
+        else {
+            opPos += 1;
+        }
+
+        // 提取数字部分
+        std::string numStr = Trim(compareStr.substr(opPos));
+        return std::stoi(numStr);
+    }
+
+
+    bool Compare(int leftVal,  int rightVal, char compareMethod) {
+        switch (compareMethod) {
+        case '<': return leftVal < rightVal;
+        case '>': return leftVal > rightVal;
+        case 'e': return leftVal == rightVal;
+        case 'l': // 用 'l' 表示 <= (less or equal)
+            return leftVal <= rightVal;
+        case 'g': // 用 'g' 表示 >= (greater or equal)
+            return leftVal >= rightVal;
+        default:
+            throw std::invalid_argument("Invalid comparison method. Supported: '<', '>', '=', 'l', 'g'");
+        }
+    }
+
+    // 前置和后置++ --
+    void stepCnt(int& cnt, const std::string& stepMethod) {
+        if (stepMethod.find("++") != std::string::npos) cnt++;
+        else if (stepMethod.find("--") != std::string::npos) cnt--;
+        else throw std::runtime_error("only suppprt ++ --");
     }
 
 
@@ -153,19 +203,107 @@ namespace thz {
         return m_returnVar;   // 返回值是m_returnVar的拷贝
     } 
 
-    void FuncBase::parse_function_body() {
-        std::vector<std::string> statements = Split(m_funcStatements, ';');
 
-        for (const std::string& stmt : statements) {
+    void FuncBase::parse_function_body() {
+        parse_braces_body(m_funcStatements);
+    }
+
+
+    size_t FindMatchingBrace(const std::string& bracesBody, size_t startPos) {
+        int level = 1;  // 初始层级为1（已经跳过了第一个'{'）
+        for (size_t pos = startPos; pos < bracesBody.length(); ++pos) {
+            char c = bracesBody[pos];
+            if (c == '{') level++;
+            else if (c == '}') {
+                if (--level == 0) return pos;  // 找到匹配的右括号
+            }
+            // 跳过字符串字面量（避免将字符串内的"}"误判为结束）
+            else if (c == '"') {
+                do { pos++; } while (pos < bracesBody.length() && bracesBody[pos] != '"');
+            }
+        }
+        return std::string::npos;  // 未找到匹配
+    }
+
+    bool IsControlKeyword(const std::string& bracesBody, size_t pos) {
+        static const std::vector<std::string> keywords = { "for", "if", "while", "do" };
+        for (const auto& kw : keywords) {
+            if (bracesBody.compare(pos, kw.length(), kw) == 0) {
+                // 检查关键字后是否跟空格/括号  
+                size_t next_pos = pos + kw.length();
+                if (isspace(bracesBody[next_pos]) ||
+                    bracesBody[next_pos] == '(' ||
+                    bracesBody[next_pos] == '{') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    void SplitBody(std::vector<std::string>& stmts,const std::string& bracesBody) {
+        std::stack<size_t> controlStack; // 存储控制结构的起始位置
+        size_t pos = 0;
+        size_t len = bracesBody.length();
+
+        while (pos < len) {
+
+            while (pos < len && isspace(bracesBody[pos])) pos++;
+            if (pos >= len) break;
+
+            if (IsControlKeyword(bracesBody, pos)) {
+                size_t block_start = bracesBody.find('{');
+                if (block_start == std::string::npos) {
+                    throw std::runtime_error(" control block must have { }");
+                }
+                size_t block_end = FindMatchingBrace(bracesBody, block_start + 1);
+                stmts.push_back(bracesBody.substr(pos, block_end - pos + 1));
+                pos = block_end + 1;
+            }
+            else {
+                size_t end = bracesBody.find(';', pos);
+                if (end == std::string::npos) end = len;
+                std::string stmt = bracesBody.substr(pos, end - pos);
+                if (!stmt.empty()) stmts.push_back(stmt);
+                pos = end + 1;
+            }
+        }
+    }
+
+
+    void FuncBase::parse_braces_body(const std::string& bracesBody) {
+        std::vector<std::string> statements;
+        SplitBody(statements, bracesBody);
+
+        
+        for (int i = 0; i < statements.size();i++) {
+            std::string stmt = statements[i];
             std::string trimmedStmt = Trim(stmt);
             if (trimmedStmt.empty()) continue;
+            if (stmt.find("if") == 0) {
+                while (i + 1 < statements.size()) {
+                    std::string nextStmt = Trim(statements[i+1]);
+                    if (nextStmt.find("else if") != std::string::npos || nextStmt.find("else") != std::string::npos) {
+                        trimmedStmt += nextStmt;
+                        i++;
+                    }
+                    else
+                        break;
+                }
+            }
             parse_statement(trimmedStmt);
         }
     }
 
+    // 添加if else for等的处理
     void FuncBase::parse_statement(const std::string& stmt) {
+        if (stmt.find("for") == 0) {
+            parse_loop_for(stmt);
+        }
+        else if (stmt.find("if") == 0) {
 
-        if (IsVarDeclStmt(stmt))
+        }
+        else if (IsVarDeclStmt(stmt))
             parse_variable_declaration(stmt);
         else if (IsAssignStmt(stmt))
             parse_assignment(stmt);
@@ -248,7 +386,7 @@ namespace thz {
         m_varMap[name] = std::move(var);
     }
 
-    void FuncBase::do_assignment(std::shared_ptr<VarBase>& leftVar, const std::string& rightExpr,bool leftDeref) {
+    void FuncBase::do_assignment(std::shared_ptr<VarBase>& leftVar, std::string& rightExpr,bool leftDeref) {
         VarType leftType = leftVar->get_type();
 
         // 处理 (int)a=sum(arg1,arg2)   (int*) a=sum(arg1,arg2)   (int&) a=sum(arg1,arg2)
@@ -286,14 +424,23 @@ namespace thz {
             double result = m_calc.evaluate_expression(rightExpr, this);
             SetBasicVar(leftVar, result);
         }
-        // 处理p1=p2  (p1,p2都是指针）
+        // 处理p1=p2  (p1,p2都是指针）和 p1=&a
         else if (IsPtr(leftType) && !leftDeref) {
-            auto rightVar = m_varMap.find(rightExpr);
-            if (rightVar == m_varMap.end())
-                throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
-            if (!IsPtr(rightVar->second->get_type()))
-                throw std::runtime_error("rigth var not a pointer");
-            SharePtr(leftVar, rightVar->second);
+            if (rightExpr[0] == '&') {
+                std::string rightVarStr = rightExpr.substr(1);
+                auto rightVar = m_varMap.find(rightVarStr);
+                if (rightVar == m_varMap.end())
+                    throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
+                RePtr(leftVar, rightVar->second);
+            }
+            else {
+                auto rightVar = m_varMap.find(rightExpr);
+                if (rightVar == m_varMap.end())
+                    throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
+                if (!IsPtr(rightVar->second->get_type()))
+                    throw std::runtime_error("rigth var not a pointer");
+                SharePtr(leftVar, rightVar->second);
+            }
         } //处理常规情况 a=b;
         else { 
             double result = m_calc.evaluate_expression(rightExpr, this);
@@ -347,5 +494,45 @@ namespace thz {
 
         do_assignment(retVar, exprStr, false);
     }
+
+    
+
+
+    void FuncBase::parse_loop_for(const std::string& stmt) {
+        size_t parenthesesBegin = stmt.find('(');
+        size_t parenthesesEnd = stmt.find(')');
+        std::string loopCondition = stmt.substr(parenthesesBegin + 1, parenthesesEnd - parenthesesBegin-1);
+        size_t bracesBegin = stmt.find('{');
+        size_t bracesEnd = stmt.find('}');
+        std::string loopBody = stmt.substr(bracesBegin + 1, bracesEnd - bracesBegin - 1);
+
+        std::vector<std::string> loopConditionTokens = Split(loopCondition,';');
+        if (loopConditionTokens.size() != 3) {
+            throw std::runtime_error("Invalid for loop syntax");
+        }
+
+        
+        int cnt = 0;
+        std::string cntDecl = loopConditionTokens[0];
+        size_t numBegin = cntDecl.find('=');
+        if (numBegin != std::string::npos) {
+            std::string numStr = Trim(cntDecl.substr(numBegin + 1));
+            cnt = std::stoi(numStr);
+        }
+
+        std::string compareStr = Trim(loopConditionTokens[1]);
+        char compareMethod = GetCompareMethod(compareStr);
+        int endNum = ExtractEndNum(compareStr);
+
+
+        std::string stepMethod = Trim(loopConditionTokens[2]);
+        for (cnt; Compare(cnt, endNum, compareMethod);stepCnt(cnt,stepMethod)) {
+            parse_braces_body(loopBody);
+
+        }
+
+
+    }
+
 
 }

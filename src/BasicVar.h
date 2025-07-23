@@ -25,6 +25,9 @@ namespace thz {
 	XX(Char,"char")  \
 	XX(CharRef,"char&")  \
 	XX(CharPtr,"char*")  \
+	XX(Bool,"bool")  \
+	XX(BoolRef,"bool&")  \
+	XX(BoolPtr,"bool*")  \
 	XX(NoType,"no_type")
 
 	enum class VarType : unsigned int {
@@ -59,7 +62,7 @@ namespace thz {
 		throw std::runtime_error("Unsupported parameter type: " + str);
 	}
 
-
+	extern const std::set<std::string> VgTypeMap;
 	typedef std::map<std::string, std::shared_ptr<VarBase>> VarMap;
 
 	bool IsValidVar(const std::string& type);
@@ -166,6 +169,8 @@ namespace thz {
 	using VarInt = VarNumeric<int, VarType::Int,VarType::IntRef, VarType::IntPtr>;
 	using VarDouble = VarNumeric<double, VarType::Double, VarType::DoubleRef, VarType::DoublePtr>;
 	using VarChar = VarNumeric<char, VarType::Char, VarType::CharRef, VarType::CharPtr>;
+	using VarBool = VarNumeric<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
+
 
 	// 特化int类型的引用和指针
 	using VarIntRef = VarRef<int, VarType::Int, VarType::IntRef, VarType::IntPtr>;
@@ -175,10 +180,13 @@ namespace thz {
 	using VarDoubleRef = VarRef<double, VarType::Double, VarType::DoubleRef, VarType::DoublePtr>;
 	using VarDoublePtr = VarPtr<double, VarType::Double, VarType::DoubleRef, VarType::DoublePtr>;
 
-	// 特化double类型的引用和指针
+	// 特化char类型的引用和指针
 	using VarCharRef = VarRef<char, VarType::Char, VarType::CharRef, VarType::CharPtr>;
 	using VarCharPtr = VarPtr<char, VarType::Char, VarType::CharRef, VarType::CharPtr>;
 
+	// 特化bool类型的引用和指针
+	using VarBoolRef = VarRef<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
+	using VarBoolPtr = VarPtr<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
 
 	template <typename T, VarType Type, VarType RefType, VarType PtrType >
 	class VarNumeric : public VarBase {
@@ -245,6 +253,14 @@ namespace thz {
 				}
 				catch (...) {
 					throw std::runtime_error("Invalid int value: " + dataStr);
+				}
+			}
+			else if constexpr (std::is_same_v<T, bool>) {
+				try {
+					m_data = std::stoi(dataStr);
+				}
+				catch (...) {
+					throw std::runtime_error("Invalid bool value: " + dataStr);
 				}
 			}
 			else if constexpr (std::is_same_v<T, double>) {

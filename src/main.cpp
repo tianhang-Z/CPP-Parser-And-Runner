@@ -254,15 +254,28 @@ namespace test {
     }
 
     void self_test_int() {
-        std::cout << "--------------self test1------------" << std::endl;
-        std::string file_path = "E:/hw2/testGroups/self/testcode1.cpp";
+        std::cout << "--------------self test int------------" << std::endl;
+        std::string file_path = "E:/hw2/testGroups/self/testcode_int.cpp";
         std::string actualArgs = "0,0";
         test_file(file_path, actualArgs);
     }
     void self_test_double() {
-        std::cout << "--------------self test2------------" << std::endl;
-        std::string file_path = "E:/hw2/testGroups/self/testcode2.cpp";
+        std::cout << "--------------self test double------------" << std::endl;
+        std::string file_path = "E:/hw2/testGroups/self/testcode_double.cpp";
         std::string actualArgs = "0,0";
+        test_file(file_path, actualArgs);
+    }
+    void self_test_char() {
+        std::cout << "--------------self test char------------" << std::endl;
+        std::string file_path = "E:/hw2/testGroups/self/testcode_char.cpp";
+        std::string actualArgs = "'a'";
+        test_file(file_path, actualArgs);
+    }
+
+    void self_test_bool() {
+        std::cout << "--------------self test bool------------" << std::endl;
+        std::string file_path = "E:/hw2/testGroups/self/testcode_bool.cpp";
+        std::string actualArgs = "true";
         test_file(file_path, actualArgs);
     }
 
@@ -280,7 +293,9 @@ int main() {
     //test::test_pipeLine();
     //test::test_char();
     //test::test_double();
-    test::self_test_int();
-    test::self_test_double();
+    //test::self_test_int();
+    //test::self_test_double();
+    //test::self_test_char();
+    test::self_test_bool();
 
 }

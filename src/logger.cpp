@@ -25,8 +25,4 @@ namespace Logger {
 #endif
 
 
-
-
-
-
 } // namespace Logger
