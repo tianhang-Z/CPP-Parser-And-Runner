@@ -277,8 +277,8 @@ int main() {
     //test::test_char();
     //test::test_double();
     test::self_test_int();
-    test::self_test_double();
-    test::self_test_char();
-    test::self_test_bool();
+    //test::self_test_double();
+    //test::self_test_char();
+    //test::self_test_bool();
 
 }

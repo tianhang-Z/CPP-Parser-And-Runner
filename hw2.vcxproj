@@ -23,6 +23,7 @@
     <ClCompile Include="src\BasicFunc.cpp" />
     <ClCompile Include="src\BasicVar.cpp" />
     <ClCompile Include="src\Calculator.cpp" />
+    <ClCompile Include="src\ControlBlock.cpp" />
     <ClCompile Include="src\logger.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\FileTools.cpp" />
@@ -32,8 +33,12 @@
     <ClInclude Include="src\BasicFunc.h" />
     <ClInclude Include="src\BasicVar.h" />
     <ClInclude Include="src\Calculator.h" />
+    <ClInclude Include="src\ControlBlock.h" />
     <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\FileTools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

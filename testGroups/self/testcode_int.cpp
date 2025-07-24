@@ -38,12 +38,37 @@ int Sum(int* a,int* b) {
     return *a + *b;
 }
 
+int SimpleAddOne(int a) {
+    return a + 1;
+}
 
-int ForAddTen(int a) {
-    for (int i = 0; i < 10; i++) {
-        a = a + 1;
-    };      // 必须以;结尾
+int ForAddThirty(int a) {
+    int b = 1;
+    int c = 1;
+    for (int i = 0; i <= 9; i++) {
+        int b = 1; // 允许重名
+        b = b + 1;
+        a = a + b + c;
+    }
     return a;
+}
+
+int LoopBlockCallFunc(int a) {
+    int sum = 0;
+    for ( ; a <= 10; ) {
+        sum = sum + SimpleAddOne(0);
+        a = a + 1;
+    }
+    return sum;
+}
+
+// a=1, return  55
+int Accumulate(int a) {
+    int sum = 0;
+    for (; a <= 10; a++) {
+        sum = sum + a;
+    }
+    return sum;
 }
 
 int* FunCall(int a,int* b)
@@ -57,7 +82,8 @@ int* FunCall(int a,int* b)
     int a2 = Sum(p1,p2);  // a2=2
 
     int v3 = 1;
-    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddTen(0) ; // a3 = 2+1+2
+    // a3 = 2 + 1 + 2 + 30 + 55 + 10
+    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddThirty(0) + Accumulate(1) + LoopBlockCallFunc(1); 
     int* b1 = IntAddTwoPtr(b); // b1=2
     addOne(b1, a1);  // b1++ a1++
     int c1 = a1 + *b1 + a2 + a3;  

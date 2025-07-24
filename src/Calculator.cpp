@@ -21,7 +21,7 @@ std::string GetStringValue(std::shared_ptr<VarBase> var) {
     return var->get_data();
 }
 
-double GetDoubleValue(std::shared_ptr<VarBase> var) {
+double GetDoubleValueByVar(std::shared_ptr<VarBase> var) {
     if (!var) throw std::runtime_error("Null variable");
 
     try {
@@ -176,7 +176,7 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
         // 处理函数调用
         if (i + 1 < tokens.size() && tokens[i + 1] == "(" && isalpha(token[0])) { 
             std::shared_ptr<VarBase> ret = evaluate_funcall_tokens(tokens, i, parent);
-            values.push_back(GetDoubleValue(ret));
+            values.push_back(GetDoubleValueByVar(ret));
             continue;
         }
         else if (token == "true") {
@@ -185,6 +185,10 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
         else if (token == "false") {
             values.push_back(0);
         }
+        // 处理类访问即类函数调用
+        //else if () {
+
+        //}
         // 处理变量名  
         else if (isalpha(token[0])) {
             auto var = block->find_var(token);
@@ -197,14 +201,14 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
                 (i >= 2 && tokens[i - 1] == "*" && IsOp(tokens[i - 2])) ||
                 (i >= 2 && tokens[i - 1] == "*" && tokens[i - 2] == "(")) {
                 ops.pop_back(); // 取出*
-                values.push_back(GetDoubleValue(DeReference(var)));
+                values.push_back(GetDoubleValueByVar(DeReference(var)));
             }
             else if (IsRef(var->get_type())) {
                 // 对引用的处理
-                values.push_back(GetDoubleValue(DeReference(var)));
+                values.push_back(GetDoubleValueByVar(DeReference(var)));
             }
             else {
-                values.push_back(GetDoubleValue(var));
+                values.push_back(GetDoubleValueByVar(var));
             }
         }
         // 处理数字

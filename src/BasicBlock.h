@@ -1,4 +1,6 @@
-
+#pragma once 
+#ifndef __BASICBLOCK__
+#define __BASICBLOCK__
 #include <BasicVar.h>
 #include <Calculator.h>
 
@@ -16,17 +18,25 @@ namespace thz {
 		LoopBlock,
 	};
 
+
 	class Block {
 	public:
 		friend class Calculator;
 
-
-
-		Block(std::string blockBody) :m_type(BlockType::BasicBlock),m_varMap(), m_blockBody(blockBody), m_calc(this) {
+		Block(std::string blockBody) 
+			:m_type(BlockType::BasicBlock),
+			m_varMap(),
+			m_blockBody(blockBody),
+			m_calc(this) {
 			m_parentBlock = nullptr;
 		};
 
-		Block(std::string blockBody,Block* parentBlock) :m_type(BlockType::BasicBlock), m_varMap(), m_blockBody(blockBody),m_calc(this),m_parentBlock(parentBlock) {};
+		Block(std::string blockBody,Block* parentBlock) 
+			:m_type(BlockType::BasicBlock), 
+			m_varMap(), 
+			m_blockBody(blockBody),
+			m_calc(this),
+			m_parentBlock(parentBlock) {};
 
 		BlockType get_block_type(){
 			return m_type;
@@ -60,7 +70,6 @@ namespace thz {
 		virtual std::shared_ptr<VarBase> get_return_var();
 
 		void parse_return_statement(const std::string& stmt);        // 从父block获取return_var，若为funcBlock，本身有return_var
-		void parse_loop_for(const std::string& stmt) ; 
 
 		std::shared_ptr<VarBase> create_args_by_parent_var(VarType type, std::string name, std::string argValue);
 		std::shared_ptr<VarBase> create_var_by_self_var(VarType type, std::string name, std::string argValue);
@@ -77,3 +86,5 @@ namespace thz {
 	};
 
 } // namespace thz
+
+#endif

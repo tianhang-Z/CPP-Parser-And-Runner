@@ -2,6 +2,8 @@
 #include <FileTools.h>
 namespace thz {
 
+    class ControlBlock;
+
     void FuncBlock::set_args(const std::string& actualArgs) {
         // 解析形参声明，如 "char a, int b, double c"
         std::vector<std::string> formalParamDecls = Split(m_formalArgs, ',');

@@ -17,7 +17,6 @@
 
 namespace thz {
 
-
 	class FuncBlock :public Block{
 	public:
 

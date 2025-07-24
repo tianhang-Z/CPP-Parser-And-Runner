@@ -17,7 +17,7 @@ namespace thz {
 
     class Block;
 
-    double GetDoubleValue(std::shared_ptr<VarBase> var);
+    double GetDoubleValueByVar(std::shared_ptr<VarBase> var);
     std::string GetStringValue(std::shared_ptr<VarBase> var);
 
     class Calculator {

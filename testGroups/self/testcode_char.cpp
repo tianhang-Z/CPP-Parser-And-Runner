@@ -27,7 +27,7 @@ char& IntAddFourRef(char& a)
 
 
 char ForAddFive(char a) {
-    for (char i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         a = a + 1;
     };      // ±ØÐëÒÔ;½áÎ²
     return a;

@@ -1,7 +1,9 @@
 #include <BasicBlock.h>
+#include <ControlBlock.h>
 #include <FileTools.h>
 
 namespace thz {
+
 
     bool IsVarDeclStmt(const std::string& stmt) {
         for (const std::string& varType : VgTypeMap) {
@@ -126,79 +128,25 @@ namespace thz {
         }
     }
 
-
-
-
-    // 辅助函数  用于条件判断
-    char GetCompareMethod(const std::string& compareStr) {
-        if (compareStr.find(">=") != std::string::npos) return 'g'; // >=
-        if (compareStr.find("<=") != std::string::npos) return 'l'; // <=
-        if (compareStr.find("==") != std::string::npos) return 'e'; // ==
-
-        if (compareStr.find('<') != std::string::npos) return '<';
-        if (compareStr.find('>') != std::string::npos) return '>';
-
-        throw std::runtime_error("Only support <, >, <=, >=, ==");
-    }
-
-    int ExtractEndNum(const std::string& compareStr) {
-        // 提取比较运算符后面的数字（如 "i<5" 中的 5）
-        size_t opPos = compareStr.find_first_of("<>=");
-        if (opPos == std::string::npos) {
-            throw std::runtime_error("Invalid comparison operator");
-        }
-
-        // 跳过比较运算符（可能多字符如 <=、>=）
-        if (compareStr.substr(opPos, 2) == "<=" || compareStr.substr(opPos, 2) == ">=" || compareStr.substr(opPos, 2) == "==") {
-            opPos += 2;
-        }
-        else {
-            opPos += 1;
-        }
-
-        // 提取数字部分
-        std::string numStr = Trim(compareStr.substr(opPos));
-        return std::stoi(numStr);
-    }
-
-
-    bool Compare(int leftVal, int rightVal, char compareMethod) {
-        switch (compareMethod) {
-        case '<': return leftVal < rightVal;
-        case '>': return leftVal > rightVal;
-        case 'e': return leftVal == rightVal;
-        case 'l': // 用 'l' 表示 <= (less or equal)
-            return leftVal <= rightVal;
-        case 'g': // 用 'g' 表示 >= (greater or equal)
-            return leftVal >= rightVal;
-        default:
-            throw std::invalid_argument("Invalid comparison method. Supported: '<', '>', '=', 'l', 'g'");
-        }
-    }
-
-    // 前置和后置++ --
-    void stepCnt(int& cnt, const std::string& stepMethod) {
-        if (stepMethod.find("++") != std::string::npos) cnt++;
-        else if (stepMethod.find("--") != std::string::npos) cnt--;
-        else throw std::runtime_error("only suppprt ++ --");
-    }
-
-
-
-
+    // 向上查找block 但是不允许跨函数查找，当parent为funcblock时，只查一次
     std::shared_ptr<VarBase> Block::find_var(std::string varName) {
+        Block* curBlock = this;
         VarMap* curMap = &m_varMap;
-        Block* parent = m_parentBlock;
         auto it = curMap->find(varName);
         while (it == curMap->end()) {
-            if (parent != nullptr) {
-                curMap = &(parent->m_varMap);
-                parent = parent->m_parentBlock;
+            if (curBlock->m_parentBlock != nullptr ) {
+                curBlock = curBlock->m_parentBlock;
+                curMap = &(curBlock->m_varMap);
                 it = curMap->find(varName);
+                if (curBlock->m_type == BlockType::FunBlock) {
+                    if (it == curMap->end()) return nullptr;
+                    else return it->second;
+                }
             }
             else
                 return nullptr; // 没有这个var
         }
+            
         return it->second;
     }
 
@@ -242,7 +190,7 @@ namespace thz {
     // 添加if else for等的处理
     void Block::parse_statement(const std::string& stmt) {
         if (stmt.find("for") == 0) {
-            parse_loop_for(stmt);
+            LoopBlock(stmt,this).run_loop();
         }
         else if (stmt.find("if") == 0) {
 
@@ -346,7 +294,7 @@ namespace thz {
                 ShareRef(leftVar, ret);
             }
             else {
-                SetBasicVar(leftVar, GetDoubleValue(ret));
+                SetBasicVar(leftVar, GetDoubleValueByVar(ret));
             }
         }
         // 解析引用
@@ -418,40 +366,6 @@ namespace thz {
 
 
 
-    void Block::parse_loop_for(const std::string& stmt) {
-        size_t parenthesesBegin = stmt.find('(');
-        size_t parenthesesEnd = stmt.find(')');
-        std::string loopCondition = stmt.substr(parenthesesBegin + 1, parenthesesEnd - parenthesesBegin - 1);
-        size_t bracesBegin = stmt.find('{');
-        size_t bracesEnd = stmt.find('}');
-        std::string loopBody = stmt.substr(bracesBegin + 1, bracesEnd - bracesBegin - 1);
-
-        std::vector<std::string> loopConditionTokens = Split(loopCondition, ';');
-        if (loopConditionTokens.size() != 3) {
-            throw std::runtime_error("Invalid for loop syntax");
-        }
-
-
-        int cnt = 0;
-        std::string cntDecl = loopConditionTokens[0];
-        size_t numBegin = cntDecl.find('=');
-        if (numBegin != std::string::npos) {
-            std::string numStr = Trim(cntDecl.substr(numBegin + 1));
-            cnt = std::stoi(numStr);
-        }
-
-        std::string compareStr = Trim(loopConditionTokens[1]);
-        char compareMethod = GetCompareMethod(compareStr);
-        int endNum = ExtractEndNum(compareStr);
-
-
-        std::string stepMethod = Trim(loopConditionTokens[2]);
-        for (cnt; Compare(cnt, endNum, compareMethod); stepCnt(cnt, stepMethod)) {
-            parse_block_body(loopBody);
-
-        }
-    }
-
     // 返回语句解析
     void Block::parse_return_statement(const std::string& stmt) {
         size_t returnPos = stmt.find("return");
@@ -483,7 +397,6 @@ namespace thz {
 
     // 传参
     std::shared_ptr<VarBase> Block::create_args_by_parent_var(VarType type, std::string name, std::string argValue) {
-        VarMap& parentVarMap = m_parentBlock->get_var_map();
         std::shared_ptr<VarBase> var = CreateVarByBlockVarMap(type, name, argValue, m_parentBlock);
         return var;
     }
