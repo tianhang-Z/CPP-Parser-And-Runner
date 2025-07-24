@@ -131,7 +131,6 @@ std::shared_ptr<VarBase> Calculator::evaluate_funCall(const std::string& expr, B
 std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<std::string>& tokens,size_t& tokens_idx, Block* parent){
     while (tokens_idx < tokens.size()) {
         const std::string& token = tokens[tokens_idx];
-        LOG_DEBUG("%d token %s", tokens_idx, token.c_str());
 
         if (token.empty()) {
             tokens_idx++;
@@ -167,7 +166,6 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
 
     while (i < tokens.size()) {
         const std::string& token = tokens[i];
-        LOG_DEBUG("%d token %s", i, token.c_str());
         
         if (token.empty()) {
             i++;

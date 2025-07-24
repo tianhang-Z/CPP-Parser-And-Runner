@@ -97,9 +97,9 @@ namespace thz{
         size_t parenthesesBegin = m_blockBody.find('(');
         size_t parenthesesEnd = m_blockBody.find(')');
         std::string loopCondition = m_blockBody.substr(parenthesesBegin + 1, parenthesesEnd - parenthesesBegin - 1);
-        size_t bracesBegin = m_blockBody.find('{');
-        size_t bracesEnd = m_blockBody.find('}');
-        std::string loopBody = m_blockBody.substr(bracesBegin + 1, bracesEnd - bracesBegin - 1);
+        size_t bracesBegin = m_blockBody.find_first_of('{');
+        size_t bracesEnd = m_blockBody.find_last_of('}');
+        std::string loopBody = m_blockBody.substr(bracesBegin + 1, bracesEnd - bracesBegin-1 );
 
         std::vector<std::string> loopConditionTokens = Split(loopCondition, ';');
         if (loopConditionTokens.size() != 3) {
@@ -133,5 +133,11 @@ namespace thz{
             if(stepMethod.size()!=0)
                 stepCnt(stepMethod, this);
         }
+    }
+
+
+    void IfBlock::parse_if_block() {
+
+
     }
 }

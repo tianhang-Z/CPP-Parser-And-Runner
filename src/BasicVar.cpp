@@ -480,7 +480,6 @@ namespace thz {
             var = CreateVariable(type, name, rightVar);
         }
         else {
-            LOG_DEBUG("%s %s", type2Str(type), rightVar);
             throw std::runtime_error("invalid stmt");
         };
         return var;

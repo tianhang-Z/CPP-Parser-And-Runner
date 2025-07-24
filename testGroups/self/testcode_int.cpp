@@ -53,6 +53,17 @@ int ForAddThirty(int a) {
     return a;
 }
 
+// return 100
+int& NestedLoop(int& sum) {
+    sum = 0;
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            sum = sum + 1;
+        }
+    }
+    return sum;
+}
+
 int LoopBlockCallFunc(int a) {
     int sum = 0;
     for ( ; a <= 10; ) {
@@ -83,7 +94,8 @@ int* FunCall(int a,int* b)
 
     int v3 = 1;
     // a3 = 2 + 1 + 2 + 30 + 55 + 10
-    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddThirty(0) + Accumulate(1) + LoopBlockCallFunc(1); 
+    int& v4 = v3;
+    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddThirty(0) + Accumulate(1) + LoopBlockCallFunc(1) + NestedLoop(v4) ; 
     int* b1 = IntAddTwoPtr(b); // b1=2
     addOne(b1, a1);  // b1++ a1++
     int c1 = a1 + *b1 + a2 + a3;  

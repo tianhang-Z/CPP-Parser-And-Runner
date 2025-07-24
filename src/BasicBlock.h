@@ -16,6 +16,7 @@ namespace thz {
 		BasicBlock,
 		FunBlock,
 		LoopBlock,
+		IfBlock,
 	};
 
 

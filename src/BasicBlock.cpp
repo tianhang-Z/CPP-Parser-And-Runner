@@ -84,7 +84,7 @@ namespace thz {
     }
 
     bool IsControlKeyword(const std::string& blockBody, size_t pos) {
-        static const std::vector<std::string> keywords = { "for", "if", "while", "do" };
+        static const std::vector<std::string> keywords = { "for", "else", "if", "while", "do" };
         for (const auto& kw : keywords) {
             if (blockBody.compare(pos, kw.length(), kw) == 0) {
                 // ¼ì²é¹Ø¼ü×ÖºóÊÇ·ñ¸ú¿Õ¸ñ/À¨ºÅ  
@@ -110,13 +110,15 @@ namespace thz {
             if (pos >= len) break;
 
             if (IsControlKeyword(blockBody, pos)) {
-                size_t block_start = blockBody.find('{');
+                size_t block_start = blockBody.find('{',pos);
                 if (block_start == std::string::npos) {
                     throw std::runtime_error(" control block must have { }");
                 }
                 size_t block_end = FindMatchingBrace(blockBody, block_start + 1);
-                stmts.push_back(blockBody.substr(pos, block_end - pos + 1));
+                std::string stmt = blockBody.substr(pos, block_end - pos + 1);
+                stmts.push_back(stmt);
                 pos = block_end + 1;
+                LOG_DEBUG("split result: %s", stmt.c_str());
             }
             else {
                 size_t end = blockBody.find(';', pos);
@@ -124,6 +126,8 @@ namespace thz {
                 std::string stmt = blockBody.substr(pos, end - pos);
                 if (!stmt.empty()) stmts.push_back(stmt);
                 pos = end + 1;
+                LOG_DEBUG("split result: %s", stmt.c_str());
+
             }
         }
     }
@@ -166,7 +170,6 @@ namespace thz {
     void Block::parse_block_body(const std::string& blockBody) {
         std::vector<std::string> statements;
         SplitBody(statements, blockBody);
-
 
         for (int i = 0; i < statements.size(); i++) {
             std::string stmt = statements[i];

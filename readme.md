@@ -1,3 +1,5 @@
+## 简单的cpp文件动态解析和运行期
+
 ### 支持代码注释
 * 支持单行注释和行末注释 //
 
@@ -32,9 +34,11 @@ int* IntAPtr(int* a)
 * 支持简单的for循环，支持for内定义与外界重名变量，重名时进行覆盖。
 * 支持外界变量传入block，
 * 支持 <  ,<= ,> ,>=, ++ ,--
-* 计数变量支持外部定义和内部定义
+* 支持计数变量外部定义和内部定义
 * 支持for condition 语句缺省
 * 支持block内部函数调用
+* 支持loop嵌套
+* 限制: block必须使用\{\}
 
 ``` cpp
 int ForAddThirty(int a) {
@@ -64,6 +68,17 @@ int LoopBlockCallFunc(int a) {
     for ( ; a <= 10; ) {
         sum = sum + SimpleAddOne(0);
         a = a + 1;
+    }
+    return sum;
+}
+
+// return 100
+int& NestedLoop(int& sum) {
+    sum = 0;
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            sum = sum + 1;
+        }
     }
     return sum;
 }

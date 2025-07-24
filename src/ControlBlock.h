@@ -22,6 +22,16 @@ namespace thz {
 	};
 
 	class IfBlock : public Block {
+	public :
+		IfBlock(std::string blockbody, Block* parent) :Block(blockbody, parent) {
+			m_type = BlockType::IfBlock;
+		}
+
+		void run_if() {
+			parse_if_block();
+		}
+	private:
+		void parse_if_block();
 
 	};
 }
