@@ -186,6 +186,34 @@ namespace thz {
 
 
 
+    std::shared_ptr<VarBase> Block::find_var(std::string varName) {
+        VarMap* curMap = &m_varMap;
+        Block* parent = m_parentBlock;
+        auto it = curMap->find(varName);
+        while (it == curMap->end()) {
+            if (parent != nullptr) {
+                curMap = &(parent->m_varMap);
+                parent = parent->m_parentBlock;
+                it = curMap->find(varName);
+            }
+            else
+                return nullptr; // 没有这个var
+        }
+        return it->second;
+    }
+
+    // 支持向上查找父block 找到函数的block
+    std::shared_ptr<VarBase> Block::get_return_var() {
+        Block* searchBlock = m_parentBlock;
+        while (searchBlock != nullptr) {
+            if (searchBlock->get_block_type() != BlockType::FunBlock)
+                searchBlock = searchBlock->m_parentBlock;
+            else
+                return searchBlock->get_return_var();
+        }
+        return nullptr;
+    };
+
 
     void Block::parse_block_body(const std::string& blockBody) {
         std::vector<std::string> statements;
@@ -326,10 +354,9 @@ namespace thz {
             // 当leftType是返回值时 需要特殊处理
             // int& donothing(int& a) {return a;}
             if (leftVar->get_name() == "return_var") {
-                auto it = m_varMap.find(rightExpr);
-                if (it == m_varMap.end())
+                auto rightVar = find_var(rightExpr);
+                if (rightVar == nullptr)
                     throw std::runtime_error("can not get rightVar");
-                std::shared_ptr<VarBase> rightVar = it->second;
                 ShareRef(leftVar, rightVar);
             }
             else {
@@ -346,18 +373,18 @@ namespace thz {
         else if (IsPtr(leftType) && !leftDeref) {
             if (rightExpr[0] == '&') {
                 std::string rightVarStr = rightExpr.substr(1);
-                auto rightVar = m_varMap.find(rightVarStr);
-                if (rightVar == m_varMap.end())
+                auto rightVar = find_var(rightVarStr);
+                if (rightVar == nullptr)
                     throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
-                RePtr(leftVar, rightVar->second);
+                RePtr(leftVar, rightVar);
             }
             else {
-                auto rightVar = m_varMap.find(rightExpr);
-                if (rightVar == m_varMap.end())
+                auto rightVar = find_var(rightExpr);
+                if (rightVar == nullptr)
                     throw std::runtime_error("Undefined right variable: " + leftVar->get_name());
-                if (!IsPtr(rightVar->second->get_type()))
+                if (!IsPtr(rightVar->get_type()))
                     throw std::runtime_error("rigth var not a pointer");
-                SharePtr(leftVar, rightVar->second);
+                SharePtr(leftVar, rightVar);
             }
         } //处理常规情况 a=b;
         else {
@@ -381,14 +408,12 @@ namespace thz {
             varName = varName.substr(1);
         }
 
-        auto it = m_varMap.find(varName);
-        if (it == m_varMap.end()) {
+        auto leftVar = find_var(varName);
+        if (leftVar == nullptr) {
             throw std::runtime_error("Undefined variable: " + varName);
         }
 
-        std::shared_ptr<VarBase> var = it->second;
-
-        do_assignment(var, exprStr, varDeRef);
+        do_assignment(leftVar, exprStr, varDeRef);
     }
 
 
@@ -459,13 +484,13 @@ namespace thz {
     // 传参
     std::shared_ptr<VarBase> Block::create_args_by_parent_var(VarType type, std::string name, std::string argValue) {
         VarMap& parentVarMap = m_parentBlock->get_var_map();
-        std::shared_ptr<VarBase> var = CreateVarByVarMap(type, name, argValue, parentVarMap);
+        std::shared_ptr<VarBase> var = CreateVarByBlockVarMap(type, name, argValue, m_parentBlock);
         return var;
     }
 
     // 从已有变量创建
     std::shared_ptr<VarBase> Block::create_var_by_self_var(VarType type, std::string name, std::string argValue) {
-        std::shared_ptr<VarBase> var = CreateVarByVarMap(type, name, argValue, this->get_var_map());
+        std::shared_ptr<VarBase> var = CreateVarByBlockVarMap(type, name, argValue, this);
         return var;
     }
 

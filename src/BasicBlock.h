@@ -43,6 +43,7 @@ namespace thz {
 		}
 
 
+
 		/*
 		block可以是func control_block 共同点是管理一些变量，可以声明和赋值，可以提前return，其中可以嵌套block
 		block可以从父block查找var并对其赋值
@@ -53,17 +54,10 @@ namespace thz {
 		void do_assignment(std::shared_ptr<VarBase>& leftVar, std::string& rightExpr, bool leftDeref);
 		void parse_variable_declaration(const std::string& stmt);
 
+		std::shared_ptr<VarBase> find_var(std::string varName);
+		
 		// 支持向上查找父block 找到函数的block
-		virtual std::shared_ptr<VarBase> get_return_var() {
-			Block* searchBlock = m_parentBlock;
-			while (searchBlock!=nullptr) {
-				if (searchBlock->get_block_type() != BlockType::FunBlock)
-					searchBlock = searchBlock->m_parentBlock;
-				else 
-					return searchBlock->get_return_var();
-			}
-			return nullptr;
-		} ; // 
+		virtual std::shared_ptr<VarBase> get_return_var();
 
 		void parse_return_statement(const std::string& stmt);        // 从父block获取return_var，若为funcBlock，本身有return_var
 		void parse_loop_for(const std::string& stmt) ; 

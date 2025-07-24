@@ -1,4 +1,5 @@
 #include <BasicVar.h>
+#include <BasicBlock.h>
 #include <FileTools.h>
 #include <logger.h>
 
@@ -485,7 +486,7 @@ namespace thz {
         return var;
     }
 
-    std::shared_ptr<VarBase> CreateVarByVarMap(VarType type, std::string name, std::string argValue, VarMap varMap) {
+    std::shared_ptr<VarBase> CreateVarByBlockVarMap(VarType type, std::string name, std::string argValue, Block* block) {
         bool createRef = IsRef(type), createPtr = IsPtr(type);
         bool getAddr = false, deRef = false;     // 取值和解引用判断
 
@@ -500,9 +501,8 @@ namespace thz {
         }
 
         std::shared_ptr<VarBase> var;
-        auto it = varMap.find(realArgValue);
-        if (it != varMap.end()) {
-            std::shared_ptr<VarBase> argVar = it->second;
+        auto argVar = block->find_var(realArgValue);
+        if (argVar != nullptr ) {
             var = CreateVarByVar(type, name, argVar, createPtr, createRef, getAddr, deRef);
         }
         else {

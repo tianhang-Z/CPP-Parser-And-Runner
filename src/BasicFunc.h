@@ -107,6 +107,7 @@ namespace thz {
 			return copyFunc.run_func(actualArgs,parent);
 
 		}
+
 		FuncBlock* create_func(std::string name) {
 			auto it = m_funcMap.find(name);
 			if (it == m_funcMap.end()) {

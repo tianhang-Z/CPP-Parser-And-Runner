@@ -12,7 +12,9 @@
 
 namespace thz {
 
+	class Block;
 	class VarBase;
+	
 
 #define TYPE_MAP(XX)  \
 	XX(Void,"void") \
@@ -84,7 +86,7 @@ namespace thz {
 	std::shared_ptr<VarBase> CreateVarByTemp(VarType type, std::string paramName, std::string argValue);
 	std::shared_ptr<VarBase> CreateVarByVar(VarType type, std::string name, std::shared_ptr<VarBase> rightVar,
 		bool createPtr = false, bool createRef = false, bool getAddr = false, bool deRef = false);
-	std::shared_ptr<VarBase> CreateVarByVarMap(VarType type, std::string name, std::string argValue, VarMap varMap);
+	std::shared_ptr<VarBase> CreateVarByBlockVarMap(VarType type, std::string name, std::string argValue, Block* block);
 
 
 	template <VarType Type>

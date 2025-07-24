@@ -187,8 +187,8 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
         }
         // 处理变量名  
         else if (isalpha(token[0])) {
-            auto it = block->get_var_map().find(token);
-            if (it == block->get_var_map().end()) {
+            auto var = block->find_var(token);
+            if (var == nullptr) {
                 throw std::runtime_error("Undefined variable: " + token);
             }
             // 当变量名前面有一个*，*前有一个其他符号时，需要解引用
@@ -197,14 +197,14 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block
                 (i >= 2 && tokens[i - 1] == "*" && IsOp(tokens[i - 2])) ||
                 (i >= 2 && tokens[i - 1] == "*" && tokens[i - 2] == "(")) {
                 ops.pop_back(); // 取出*
-                values.push_back(GetDoubleValue(DeReference(it->second)));
+                values.push_back(GetDoubleValue(DeReference(var)));
             }
-            else if (IsRef(it->second->get_type())) {
+            else if (IsRef(var->get_type())) {
                 // 对引用的处理
-                values.push_back(GetDoubleValue(DeReference(it->second)));
+                values.push_back(GetDoubleValue(DeReference(var)));
             }
             else {
-                values.push_back(GetDoubleValue(it->second));
+                values.push_back(GetDoubleValue(var));
             }
         }
         // 处理数字
