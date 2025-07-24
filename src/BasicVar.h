@@ -63,7 +63,7 @@ namespace thz {
 	}
 
 	extern const std::set<std::string> VgTypeMap;
-	typedef std::map<std::string, std::shared_ptr<VarBase>> VarMap;
+	using VarMap = std::map<std::string, std::shared_ptr<VarBase>>;
 
 	bool IsValidVar(const std::string& type);
 	bool IsBasicType(VarType type);

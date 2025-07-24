@@ -24,6 +24,9 @@
     <ClCompile Include="src\FileTools.cpp">
       <Filter>source_code</Filter>
     </ClCompile>
+    <ClCompile Include="src\BasicBlock.cpp">
+      <Filter>source_code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BasicFunc.h">
@@ -39,6 +42,9 @@
       <Filter>source_code</Filter>
     </ClInclude>
     <ClInclude Include="src\FileTools.h">
+      <Filter>source_code</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BasicBlock.h">
       <Filter>source_code</Filter>
     </ClInclude>
   </ItemGroup>

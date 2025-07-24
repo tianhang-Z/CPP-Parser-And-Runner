@@ -85,24 +85,7 @@ namespace test {
 
 	}
 
-    void test_func() {
-        /*
-         int mainFunc()
-         {
-            int a = 0;
-            int b = 1;
-            a = b;
-            int c = a + b;
-            return c;
-        }
-        */
-        /*
-        FuncBase(const std::string& returnType, const std::string& name, const std::string& formalArgs, const std::string& funcState)
-        :m_name(name), m_formalArgs(formalArgs), m_funcStatements(funcState), m_calc(&m_varMap) {
-        set_return_var(returnType);
-        };
-        */
-        
+    void test_func() {      
         std::string returnType = "int";
         std::string name = "mainFunc";
         std::string formalArgs = "int arg1,int arg2";
@@ -112,7 +95,7 @@ namespace test {
             "a = b;"
             "int c = a+arg2;"
             "return c+arg1; ";
-        FuncBase testFunc(returnType,name,formalArgs,funcStmt);
+        FuncBlock testFunc(returnType,name,formalArgs,funcStmt);
         testFunc.run_func("1,2",nullptr);
         //testFunc.display_var_map();
         DisplayVar(testFunc.get_return_var());
@@ -124,7 +107,7 @@ namespace test {
         std::string formalArgs1 = "int a,int b";
         std::string funcStmt1 =
             " return doNothing(a)+b";
-        FuncBase fun1(returnType1, name1, formalArgs1, funcStmt1);
+        FuncBlock fun1(returnType1, name1, formalArgs1, funcStmt1);
 
 
         std::string returnType2 = "int";
@@ -132,7 +115,7 @@ namespace test {
         std::string formalArgs2 = "int b";
         std::string funcStmt2 =
             " return b";
-        FuncBase fun2(returnType2, name2, formalArgs2, funcStmt2);
+        FuncBlock fun2(returnType2, name2, formalArgs2, funcStmt2);
 
         FuncMap::get_func_map().add_func(fun1.get_name(), &fun1);
         FuncMap::get_func_map().add_func(fun2.get_name(), &fun2);
@@ -148,7 +131,7 @@ namespace test {
             "int b = sum(a, arg3);"
             "int c = b;"
             "return c;";
-        FuncBase mainFunc(returnType3, name3, formalArgs3, funcStmt3);
+        FuncBlock mainFunc(returnType3, name3, formalArgs3, funcStmt3);
         
         mainFunc.run_func("100,100,100",nullptr);
         DisplayVar(mainFunc.get_return_var());
@@ -162,7 +145,7 @@ namespace test {
             "int* b=&a;"
             "int& c=a;"
             "return c;";
-        FuncBase fun1(returnType1, name1, formalArgs1, funcStmt1);
+        FuncBlock fun1(returnType1, name1, formalArgs1, funcStmt1);
         fun1.run_func("1,2", nullptr);
         DisplayVar(fun1.get_return_var());
     }
@@ -175,7 +158,7 @@ namespace test {
             " int* c = doNothing(&a);"
             "int& c1 = *c;"
             "out = c1 + b; ";
-        FuncBase fun1(returnType1, name1, formalArgs1, funcStmt1);
+        FuncBlock fun1(returnType1, name1, formalArgs1, funcStmt1);
 
 
         std::string returnType2 = "int*";
@@ -183,7 +166,7 @@ namespace test {
         std::string formalArgs2 = "int* a";
         std::string funcStmt2 =
             " return a";
-        FuncBase fun2(returnType2, name2, formalArgs2, funcStmt2);
+        FuncBlock fun2(returnType2, name2, formalArgs2, funcStmt2);
 
         FuncMap::get_func_map().add_func(fun1.get_name(), &fun1);
         FuncMap::get_func_map().add_func(fun2.get_name(), &fun2);
@@ -200,7 +183,7 @@ namespace test {
             "sum(a, arg3, b);"
             "int c = b;"
             "return c; ";
-        FuncBase mainFunc(returnType3, name3, formalArgs3, funcStmt3);
+        FuncBlock mainFunc(returnType3, name3, formalArgs3, funcStmt3);
 
         mainFunc.run_func("1,2,3", nullptr);
         DisplayVar(mainFunc.get_return_var());
@@ -225,11 +208,11 @@ namespace test {
             std::string name = func.second.funcName;
             std::string formalArgs = func.second.formalArgs;
             std::string funcStmt = func.second.funcStmt;
-            FuncBase* fun = new FuncBase(returnType, name, formalArgs, funcStmt);
+            FuncBlock* fun = new FuncBlock(returnType, name, formalArgs, funcStmt);
             FuncMap::get_func_map().add_func(fun->get_name(), fun);
         }
 
-        FuncBase* mainFunc = FuncMap::get_func_map().create_func("mainFunc");
+        FuncBlock* mainFunc = FuncMap::get_func_map().create_func("mainFunc");
         mainFunc->run_func(actualArgs, nullptr);
         DisplayVar(mainFunc->get_return_var());
     }
@@ -293,9 +276,9 @@ int main() {
     //test::test_pipeLine();
     //test::test_char();
     //test::test_double();
-    //test::self_test_int();
-    //test::self_test_double();
-    //test::self_test_char();
+    test::self_test_int();
+    test::self_test_double();
+    test::self_test_char();
     test::self_test_bool();
 
 }

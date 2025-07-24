@@ -113,14 +113,14 @@ std::vector<std::string> Calculator::tokenize(const std::string& expr) {
     return tokens;
 }
 
-double Calculator::evaluate_expression(const std::string& expr, FuncBase* parent) {
+double Calculator::evaluate_expression(const std::string& expr, Block* parent) {
     if (expr.empty()) return 0.0;
 
     std::vector<std::string> tokens = tokenize(expr);
     return evaluate_tokens(tokens,parent);
 }
 
-std::shared_ptr<VarBase> Calculator::evaluate_funCall(const std::string& expr, FuncBase* parent) {
+std::shared_ptr<VarBase> Calculator::evaluate_funCall(const std::string& expr, Block* parent) {
     if (expr.empty()) return nullptr;
 
     std::vector<std::string> tokens = tokenize(expr);
@@ -128,7 +128,7 @@ std::shared_ptr<VarBase> Calculator::evaluate_funCall(const std::string& expr, F
     return evaluate_funcall_tokens(tokens, token_idx, parent);
 }
 
-std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<std::string>& tokens,size_t& tokens_idx, FuncBase* parent){
+std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<std::string>& tokens,size_t& tokens_idx, Block* parent){
     while (tokens_idx < tokens.size()) {
         const std::string& token = tokens[tokens_idx];
         LOG_DEBUG("%d token %s", tokens_idx, token.c_str());
@@ -159,7 +159,7 @@ std::shared_ptr<VarBase> Calculator::evaluate_funcall_tokens(const std::vector<s
 
 // 增加关键字处理逻辑
 // static_cast 
-double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncBase* parent) {
+double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block* parent) {
     std::vector<double> values;
     std::vector<std::string> ops;
     size_t i = 0;
@@ -187,8 +187,8 @@ double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, FuncB
         }
         // 处理变量名  
         else if (isalpha(token[0])) {
-            auto it = m_varMap->find(token);
-            if (it == m_varMap->end()) {
+            auto it = block->get_var_map().find(token);
+            if (it == block->get_var_map().end()) {
                 throw std::runtime_error("Undefined variable: " + token);
             }
             // 当变量名前面有一个*，*前有一个其他符号时，需要解引用
