@@ -4,7 +4,7 @@
 #include <logger.h>
 #include <FileTools.h>
 #include <iostream>
-
+#include <Timer.hpp>
 
 namespace test {
     using namespace thz;
@@ -37,46 +37,46 @@ namespace test {
         for (const auto& var : variables) {
             std::cout << "Name: " << var->get_name()
                 << ", Type: " << type2Str(var->get_type())
-                << ", Value: " << var->get_data() << std::endl;
+                << ", Value: " << var->get_data_to_str() << std::endl;
         }
 
         // 设置新值并验证
-        variables[0]->set_data("30");  // age从25改为30
-        variables[1]->set_data("100"); // count从0改为100
-        variables[2]->set_data("40");  // temp从30改为40
+        variables[0]->set_data_by_str("30");  // age从25改为30
+        variables[1]->set_data_by_str("100"); // count从0改为100
+        variables[2]->set_data_by_str("40");  // temp从30改为40
 
-        variables[3]->set_data("B");   // initial从A改为B
-        variables[4]->set_data("Y");   // empty从'\0'改为Y
-        variables[5]->set_data("Z");   // ch从X改为Z
+        variables[3]->set_data_by_str("B");   // initial从A改为B
+        variables[4]->set_data_by_str("Y");   // empty从'\0'改为Y
+        variables[5]->set_data_by_str("Z");   // ch从X改为Z
 
-        variables[6]->set_data("29.95"); // price从19.99改为29.95
-        variables[7]->set_data("0.5");   // ratio从0.0改为0.5
-        variables[8]->set_data("2.71828"); // pi从3.14159改为2.71828
+        variables[6]->set_data_by_str("29.95"); // price从19.99改为29.95
+        variables[7]->set_data_by_str("0.5");   // ratio从0.0改为0.5
+        variables[8]->set_data_by_str("2.71828"); // pi从3.14159改为2.71828
 
         // 打印所有变量
         for (const auto& var : variables) {
             std::cout << "Name: " << var->get_name()
                 << ", Type: " << type2Str(var->get_type())
-                << ", Value: " << var->get_data() << std::endl;
+                << ", Value: " << var->get_data_to_str() << std::endl;
         }
 
         // 测试错误处理
         try {
-            variables[0]->set_data("abc");  // 无效int值
+            variables[0]->set_data_by_str("abc");  // 无效int值
         }
         catch (const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << std::endl;
         }
 
         try {
-            variables[3]->set_data("AB");   // 无效char值
+            variables[3]->set_data_by_str("AB");   // 无效char值
         }
         catch (const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << std::endl;
         }
 
         try {
-            variables[6]->set_data("xyz");  // 无效char值
+            variables[6]->set_data_by_str("xyz");  // 无效char值
         }
         catch (const std::runtime_error& e) {
             std::cout << "Error: " << e.what() << std::endl;
@@ -200,7 +200,7 @@ namespace test {
                 << "Body: " << mainFunc.funcStmt << std::endl;
         }
     }
-    void test_file(std::string filePath, std::string actualArgs) {
+    void test_file(std::string filePath, std::string actualArgs, bool display = false) {
         std::map<std::string, FuncInfo> funcInfoMap = ExtractFunctions(filePath);
         
         for (auto& func : funcInfoMap) {
@@ -214,8 +214,12 @@ namespace test {
 
         FuncBlock* mainFunc = FuncMap::get_func_map().create_func("mainFunc");
         mainFunc->run_func(actualArgs, nullptr);
-        DisplayVar(mainFunc->get_return_var());
+        if (display) {
+            std::cout << "test file:" << filePath << std::endl;
+            DisplayVar(mainFunc->get_return_var());
+        }
     }
+
     void test_pipeLine() {
         std::cout << "--------------test pipeline------------" << std::endl;
         std::string file_path = "E:/hw2/testGroups/group1/cppCode3.cpp";
@@ -236,36 +240,32 @@ namespace test {
         test_file(file_path, actualArgs);
     }
 
-    void self_test_int() {
-        std::cout << "--------------self test int------------" << std::endl;
+    void self_test_int(bool display=false) {
         std::string file_path = "E:/hw2/testGroups/self/testcode_int.cpp";
         std::string actualArgs = "0,0";
-        test_file(file_path, actualArgs);
+        test_file(file_path, actualArgs,display);
     }
-    void self_test_double() {
-        std::cout << "--------------self test double------------" << std::endl;
+    void self_test_double(bool display = false) {
         std::string file_path = "E:/hw2/testGroups/self/testcode_double.cpp";
         std::string actualArgs = "0,0";
-        test_file(file_path, actualArgs);
+        test_file(file_path, actualArgs, display);
     }
-    void self_test_char() {
-        std::cout << "--------------self test char------------" << std::endl;
+    void self_test_char(bool display = false) {
         std::string file_path = "E:/hw2/testGroups/self/testcode_char.cpp";
         std::string actualArgs = "'a'";
-        test_file(file_path, actualArgs);
+        test_file(file_path, actualArgs, display);
     }
 
-    void self_test_bool() {
-        std::cout << "--------------self test bool------------" << std::endl;
+    void self_test_bool(bool display = false) {
         std::string file_path = "E:/hw2/testGroups/self/testcode_bool.cpp";
         std::string actualArgs = "true";
-        test_file(file_path, actualArgs);
+        test_file(file_path, actualArgs, display);
     }
 
 }
 int main() {  
     Logger::SetLogFile("log.txt", false);
-    Logger::SetLogLevel(Logger::LogLevel::Debug);
+    Logger::SetLogLevel(Logger::LogLevel::Info);
 	//test::test_cal();
     //test::test_var();
     //test::test_func();
@@ -276,9 +276,20 @@ int main() {
     //test::test_pipeLine();
     //test::test_char();
     //test::test_double();
-    test::self_test_int();
     //test::self_test_double();
     //test::self_test_char();
-    //test::self_test_bool();
+    {
+        TimeGuard guard("loop 100 times:");
+        for (int i = 0; i < 100; i++) {
+            test::self_test_bool();
+            test::self_test_int();
+        }
+        test::self_test_bool(true);
+        test::self_test_int(true);
+        test::self_test_double(true);
+        test::self_test_char(true);
+    }
+
+
 
 }

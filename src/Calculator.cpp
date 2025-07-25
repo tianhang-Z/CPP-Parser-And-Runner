@@ -15,10 +15,10 @@ std::string GetStringValue(std::shared_ptr<VarBase> var) {
     if (!var) throw std::runtime_error("Null variable");
 
     if (var->get_type() == VarType::Char) {
-        double c = var->get_data()[0];
+        double c = var->get_data_to_str()[0];
         return std::to_string(static_cast<int>(c));
     } // double可作为int进行运算
-    return var->get_data();
+    return var->get_data_to_str();
 }
 
 double GetDoubleValueByVar(std::shared_ptr<VarBase> var) {
@@ -26,12 +26,15 @@ double GetDoubleValueByVar(std::shared_ptr<VarBase> var) {
 
     try {
         if (var->get_type() == VarType::Char) {
-            return static_cast<double>(var->get_data()[0]);
+            return static_cast<double>(var->get_data_to_str()[0]);
         }
-        return std::stod(var->get_data());     // int和char统一用double处理
+        //if (var->get_type() == VarType::Bool) {
+        //    return static
+        //}
+        return std::stod(var->get_data_to_str());     // int和char统一用double处理
     }
     catch (...) {
-        throw std::runtime_error("Conversion failed for: " + var->get_data());
+        throw std::runtime_error("Conversion failed for: " + var->get_data_to_str());
     }
 }
 

@@ -36,6 +36,7 @@
     <ClInclude Include="src\ControlBlock.h" />
     <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\FileTools.h" />
+    <ClInclude Include="src\Timer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />

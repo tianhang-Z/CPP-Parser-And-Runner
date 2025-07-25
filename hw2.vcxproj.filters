@@ -53,6 +53,9 @@
     <ClInclude Include="src\ControlBlock.h">
       <Filter>source_code</Filter>
     </ClInclude>
+    <ClInclude Include="src\Timer.hpp">
+      <Filter>source_code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />

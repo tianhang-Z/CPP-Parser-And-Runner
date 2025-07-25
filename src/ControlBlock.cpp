@@ -44,11 +44,18 @@ namespace thz{
         }
     }
 
+    // 支持a<b  或 bool 类型
     bool Compare(const std::string& compareStr,Block* block) {
         char compareMethod = GetCompareMethod(compareStr);
         size_t opBegin = compareStr.find_first_of("<>=");
         if (opBegin == std::string::npos) {
-            throw std::runtime_error("Invalid comparison operator");
+            if (compareStr == "true") return true;
+            else if (compareStr == "false") return false;
+            // 此时block中为变量
+            auto boolVar = block->find_var(compareStr);
+            if (boolVar == nullptr || boolVar->get_type() != VarType::Bool);
+                throw std::runtime_error("can not find var");
+            
         }
 
         std::string leftStr = Trim(compareStr.substr(0, opBegin));
@@ -137,7 +144,30 @@ namespace thz{
 
 
     void IfBlock::parse_if_block() {
+        std::vector<std::string> conditionVec;
+        std::vector<std::string> branchVec;
+        
+        size_t curBranchPos = 0;
+        size_t braceEndPos = 0;
+        while ((braceEndPos = m_blockBody.find('}', curBranchPos))!= std::string::npos) {
+            size_t braceBeginPos = m_blockBody.find_first_of('{', curBranchPos);
+            std::string curBranch = m_blockBody.substr(braceBeginPos + 1, braceEndPos - braceBeginPos - 1);
+            branchVec.push_back(curBranch);
 
+            size_t parenthesesBeginPos = m_blockBody.find_first_of('(', curBranchPos);
+            size_t parenthesesEndPos = m_blockBody.find_first_of(')', curBranchPos);
+            if (parenthesesBeginPos != std::string::npos && parenthesesEndPos != std::string::npos) {
+                std::string condition = m_blockBody.substr(parenthesesBeginPos + 1, parenthesesEndPos = parenthesesBeginPos - 1);
+                conditionVec.push_back(condition);
+            }
+            else {
+                conditionVec.push_back("");
+            }
+
+            curBranchPos = braceEndPos + 1;
+        }
+
+        
 
     }
 }

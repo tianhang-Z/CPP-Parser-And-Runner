@@ -30,13 +30,11 @@ namespace thz {
         else return false;
     }
 
-
-
     namespace {
         struct TypeRelation {
-            VarType m_base;      
-            VarType m_ref;       
-            VarType m_ptr;       
+            VarType m_base;
+            VarType m_ref;
+            VarType m_ptr;
         };
         // 支持的变量类型关系表
         static const std::vector<TypeRelation> SupportedTypes = {
@@ -46,28 +44,7 @@ namespace thz {
             {VarType::Bool, VarType::BoolRef, VarType::BoolPtr}
 
         };
-
-        // 特化映射
-        template <VarType Type>
-        struct Type2ClassMap;
-
-        template <> struct Type2ClassMap<VarType::Int> { using ClassName = VarInt; };
-        template <> struct Type2ClassMap<VarType::Double> { using ClassName = VarDouble; };
-        template <> struct Type2ClassMap<VarType::Char> { using ClassName = VarChar; };
-        template <> struct Type2ClassMap<VarType::Bool> { using ClassName = VarChar; };
-
-        template <> struct Type2ClassMap<VarType::IntPtr> { using ClassName = VarIntPtr; };
-        template <> struct Type2ClassMap<VarType::CharPtr> { using ClassName = VarCharPtr; };
-        template <> struct Type2ClassMap<VarType::DoublePtr> { using ClassName = VarDoublePtr; };
-        template <> struct Type2ClassMap<VarType::BoolPtr> { using ClassName = VarBoolPtr; };
-
-        template <> struct Type2ClassMap<VarType::IntRef> { using ClassName = VarIntRef; };
-        template <> struct Type2ClassMap<VarType::CharRef> { using ClassName = VarCharRef; };
-        template <> struct Type2ClassMap<VarType::DoubleRef> { using ClassName = VarDoubleRef; };
-        template <> struct Type2ClassMap<VarType::BoolRef> { using ClassName = VarBoolRef; };
-
-    } // anonymous namespace
-
+    }
 
     VarType GetReferenceType(VarType baseType) {
         for (const auto& group : SupportedTypes) {
@@ -211,32 +188,40 @@ namespace thz {
     void DisplayVar(std::shared_ptr<VarBase> var) {
         std::cout << "name:" << var->get_name() << std::endl
             << "type:" << type2Str(var->get_type()) << std::endl
-            << "data:" << var->get_data() << std::endl;
+            << "data:" << var->get_data_to_str() << std::endl;
     }
 
 
+    template<VarType Type>
+    std::shared_ptr<typename Type2ClassMap<Type>::ClassName>
+    ConvertClass(std::shared_ptr<VarBase> var) {
+        return std::dynamic_pointer_cast<typename Type2ClassMap<Type>::ClassName>(var);
+    }
+    
+    template<VarType Type,typename T>
+    void SetBasicVarImpl(std::shared_ptr<VarBase> target, T value) {
+        auto temp = ConvertClass<Type>(target);
+        temp->set_raw_data(value);
+    }
+
+    // 对于指针 该函数修改指向地址的值
     void SetBasicVar(std::shared_ptr<VarBase> target, double value) {
         switch (target->get_type()) {
-        case VarType::Double:
-        case VarType::DoubleRef:
-        case VarType::DoublePtr:
-            target->set_data(std::to_string(value));
-            break;
-        case VarType::Char:
-        case VarType::CharRef:
-        case VarType::CharPtr:
-            target->set_data(std::string(1, static_cast<char>(value)));
-            break;
-        case VarType::Int:
-        case VarType::IntRef:
-        case VarType::IntPtr:
-            target->set_data(std::to_string(static_cast<int>(value)));
-            break;
-        case VarType::Bool:
-        case VarType::BoolRef:
-        case VarType::BoolPtr:
-            target->set_data(std::to_string(static_cast<int>(value)));  // double转int 对bool赋值
-            break;
+        case VarType::Double:  SetBasicVarImpl< VarType::Double>(target, value); break;
+        case VarType::DoubleRef: SetBasicVarImpl< VarType::DoubleRef>(target, value); break;
+        case VarType::DoublePtr: SetBasicVarImpl< VarType::DoublePtr>(target, value); break;
+
+        case VarType::Char: SetBasicVarImpl< VarType::Char>(target, static_cast<char>(value)); break;
+        case VarType::CharRef: SetBasicVarImpl< VarType::CharRef>(target, static_cast<char>(value)); break;
+        case VarType::CharPtr: SetBasicVarImpl< VarType::CharPtr>(target, static_cast<char>(value)); break;
+
+        case VarType::Int: SetBasicVarImpl< VarType::Int>(target, static_cast<int>(value)); break;
+        case VarType::IntRef: SetBasicVarImpl< VarType::IntRef>(target, static_cast<int>(value)); break;
+        case VarType::IntPtr: SetBasicVarImpl< VarType::IntPtr>(target, static_cast<int>(value)); break;
+
+        case VarType::Bool: SetBasicVarImpl< VarType::Bool>(target, static_cast<bool>(value)); break;
+        case VarType::BoolRef: SetBasicVarImpl< VarType::BoolRef>(target, static_cast<bool>(value)); break;
+        case VarType::BoolPtr: SetBasicVarImpl< VarType::BoolPtr>(target, static_cast<bool>(value)); break;
         default:
             throw std::runtime_error("Unsupported target type");
         }

@@ -1,5 +1,5 @@
 #pragma once
-#ifndef __BASICVAR__
+#ifndef  __BASICVAR__
 #define  __BASICVAR__
 #include <string>
 #include <cassert>
@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <vector>
 
 namespace thz {
 
@@ -115,8 +116,8 @@ namespace thz {
 		VarType get_type() const {
 			return m_type;
 		}
-		virtual void set_data(const std::string& dataStr) {};       //为了接口统一 参数设置为string
-		virtual std::string get_data() const {
+		virtual void set_data_by_str(const std::string& dataStr) {};       //为了接口统一 参数设置为string
+		virtual std::string get_data_to_str() const {
 			throw std::runtime_error("VarBase No Data");
 			return "VarBase No Data";
 		};
@@ -145,7 +146,7 @@ namespace thz {
 			set_type(VarType::Void);
 		}
 
-		std::string get_data() const {
+		std::string get_data_to_str() const {
 			throw std::runtime_error("void has no data");
 			return "void has no data";
 		};
@@ -153,7 +154,7 @@ namespace thz {
 			throw std::runtime_error("void has no data");
 			return NULL;
 		};
-		void set_data(const std::string& dataStr) {
+		void set_data_by_str(const std::string& dataStr) {
 			throw std::runtime_error("void has no data");
 		}
 	};
@@ -190,9 +191,38 @@ namespace thz {
 	using VarBoolRef = VarRef<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
 	using VarBoolPtr = VarPtr<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
 
+
+	namespace {
+
+
+		// 特化映射
+		template <VarType Type>
+		struct Type2ClassMap;
+
+		template <> struct Type2ClassMap<VarType::Int> { using ClassName = VarInt; };
+		template <> struct Type2ClassMap<VarType::Double> { using ClassName = VarDouble; };
+		template <> struct Type2ClassMap<VarType::Char> { using ClassName = VarChar; };
+		template <> struct Type2ClassMap<VarType::Bool> { using ClassName = VarBool; };
+
+		template <> struct Type2ClassMap<VarType::IntPtr> { using ClassName = VarIntPtr; };
+		template <> struct Type2ClassMap<VarType::CharPtr> { using ClassName = VarCharPtr; };
+		template <> struct Type2ClassMap<VarType::DoublePtr> { using ClassName = VarDoublePtr; };
+		template <> struct Type2ClassMap<VarType::BoolPtr> { using ClassName = VarBoolPtr; };
+
+		template <> struct Type2ClassMap<VarType::IntRef> { using ClassName = VarIntRef; };
+		template <> struct Type2ClassMap<VarType::CharRef> { using ClassName = VarCharRef; };
+		template <> struct Type2ClassMap<VarType::DoubleRef> { using ClassName = VarDoubleRef; };
+		template <> struct Type2ClassMap<VarType::BoolRef> { using ClassName = VarBoolRef; };
+
+	} // anonymous namespace
+
+
+
 	template <typename T, VarType Type, VarType RefType, VarType PtrType >
 	class VarNumeric : public VarBase {
 	public:
+		friend double GetDoubleValueByVar(std::shared_ptr<VarBase> var);
+
 		// 默认构造函数
 		VarNumeric(const std::string& name) : m_data(T{}) {
 			set_name(name);
@@ -204,7 +234,7 @@ namespace thz {
 			set_name(name);
 			if (IsRef(data->get_type())) {
 				auto temp = std::dynamic_pointer_cast<VarRef<T, Type, RefType,PtrType >>(data);
-				set_data(temp->get_data());
+				set_data_by_str(temp->get_data_to_str());
 			}
 			else {
 				auto temp = std::dynamic_pointer_cast<VarNumeric>(data);
@@ -219,22 +249,22 @@ namespace thz {
 			set_type(Type);
 		}
 
-		// 从字符串构造
+		// 从字符串构造  传入临时变量时  临时变量是字符串
 		VarNumeric(const std::string& name, const std::string& dataStr) {
 			set_name(name);
-			set_data(dataStr);
+			set_data_by_str(dataStr);
 			set_type(Type);
 		}
 
-		// 获取数据字符串表示
-		std::string get_data() const override {
+		
+		std::string get_data_to_str() const override {
 			if constexpr (std::is_same_v<T, char>) {
 				return std::string(1, m_data);
 			}
 			else {
 				return std::to_string(m_data);
 			}
-		}
+		} 
 
 		// 获取数据地址
 		void* get_data_addr() override {
@@ -242,7 +272,7 @@ namespace thz {
 		}
 
 		// 设置数据
-		void set_data(const std::string& dataStr) override {
+		void set_data_by_str(const std::string& dataStr) override {
 			if constexpr (std::is_same_v<T, char>) {
 				if (dataStr.size() != 1) {
 					throw std::runtime_error("Char must be exactly 1 character");
@@ -275,6 +305,10 @@ namespace thz {
 			}
 		}
 
+		void set_raw_data(T data) {
+			m_data = data;
+		}
+
 		// 获取原始数据
 		T get_raw_data() const {
 			return m_data;
@@ -299,6 +333,8 @@ namespace thz {
 		template <VarType Type>
 		friend void RePtrImpl(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 
+		using OriginClass = typename Type2ClassMap<BaseType>::ClassName;
+
 		VarRef(const std::string& name, std::shared_ptr<VarBase> source) {
 			if (source->get_type() == BaseType)
 				m_data = source;
@@ -318,17 +354,28 @@ namespace thz {
 			set_type(RefType);
 		}
 
-		std::string get_data() const {
-			return m_data->get_data();
+		std::string get_data_to_str() const {
+			return m_data->get_data_to_str();
 		};
 
 		void* get_data_addr() {
 			return m_data->get_data_addr();
 		};
 
-		void set_data(const std::string& dataStr) {
-			m_data->set_data(dataStr);
+		void set_data_by_str(const std::string& dataStr) {
+			m_data->set_data_by_str(dataStr);
 		};
+
+		
+		void set_raw_data(T data) {
+			auto temp = std::dynamic_pointer_cast<OriginClass>(m_data);
+			temp->set_raw_data(data);
+		}
+
+		T get_raw_data() {
+			auto temp = std::dynamic_pointer_cast<OriginClass>(m_data);
+			return temp->get_raw_data();
+		}
 
 	private:
 		std::shared_ptr<VarBase> m_data;
@@ -346,6 +393,9 @@ namespace thz {
 		friend void SharePtrImpl(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
 		template <VarType Type>
 		friend void RePtrImpl(std::shared_ptr<VarBase> var, std::shared_ptr<VarBase> target);
+
+		using OriginClass = typename Type2ClassMap<BaseType>::ClassName;
+
 
 		VarPtr(const std::string& name, std::shared_ptr<VarBase> source, bool shareData) {
 			if (shareData) {
@@ -379,12 +429,12 @@ namespace thz {
 			set_type(PtrType);
 		}
 
-		void set_data(const std::string& dataStr) {
-			m_data->set_data(dataStr);
+		void set_data_by_str(const std::string& dataStr) {
+			m_data->set_data_by_str(dataStr);
 		};
 
 		//获取地址
-		std::string get_data() const {
+		std::string get_data_to_str() const {
 			std::stringstream ss;
 			ss << m_data;
 			std::string addressStr = ss.str();
@@ -394,6 +444,17 @@ namespace thz {
 		void* get_data_addr() {
 			return &m_data;
 		};
+
+		// 获取指向地址的值
+		void set_raw_data(T data) {
+			auto temp = std::dynamic_pointer_cast<OriginClass>(m_data);
+			temp->set_raw_data(data);
+		}
+
+		T get_raw_data() {
+			auto temp = std::dynamic_pointer_cast<OriginClass>(m_data);
+			return temp->get_raw_data();
+		}
 
 	private:
 		std::shared_ptr<VarBase> m_data;
@@ -405,4 +466,5 @@ namespace thz {
 #undef TYPE_MAP
 
 }
+
 #endif

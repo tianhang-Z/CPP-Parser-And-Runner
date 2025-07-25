@@ -7,6 +7,7 @@ bool* PtrTrue(bool* a)
 
 bool& RefFalse(bool& a)
 {
+
     a = false;
     return a;
 }
