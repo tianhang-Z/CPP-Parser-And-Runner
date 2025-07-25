@@ -192,15 +192,9 @@ namespace thz {
     }
 
 
-    template<VarType Type>
-    std::shared_ptr<typename Type2ClassMap<Type>::ClassName>
-    ConvertClass(std::shared_ptr<VarBase> var) {
-        return std::dynamic_pointer_cast<typename Type2ClassMap<Type>::ClassName>(var);
-    }
-    
     template<VarType Type,typename T>
     void SetBasicVarImpl(std::shared_ptr<VarBase> target, T value) {
-        auto temp = ConvertClass<Type>(target);
+        auto temp =  std::dynamic_pointer_cast<typename Type2ClassMap<Type>::ClassName>(target);
         temp->set_raw_data(value);
     }
 

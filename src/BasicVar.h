@@ -107,6 +107,7 @@ namespace thz {
 	void SetBasicVar(std::shared_ptr<VarBase> target, double value);
 	void DisplayVar(std::shared_ptr<VarBase> var);
 
+
 	class VarBase {
 	public:
 
@@ -192,29 +193,25 @@ namespace thz {
 	using VarBoolPtr = VarPtr<bool, VarType::Bool, VarType::BoolRef, VarType::BoolPtr>;
 
 
-	namespace {
 
+	// 特化映射
+	template <VarType Type>
+	struct Type2ClassMap;
 
-		// 特化映射
-		template <VarType Type>
-		struct Type2ClassMap;
+	template <> struct Type2ClassMap<VarType::Int> { using ClassName = VarInt; };
+	template <> struct Type2ClassMap<VarType::Double> { using ClassName = VarDouble; };
+	template <> struct Type2ClassMap<VarType::Char> { using ClassName = VarChar; };
+	template <> struct Type2ClassMap<VarType::Bool> { using ClassName = VarBool; };
 
-		template <> struct Type2ClassMap<VarType::Int> { using ClassName = VarInt; };
-		template <> struct Type2ClassMap<VarType::Double> { using ClassName = VarDouble; };
-		template <> struct Type2ClassMap<VarType::Char> { using ClassName = VarChar; };
-		template <> struct Type2ClassMap<VarType::Bool> { using ClassName = VarBool; };
+	template <> struct Type2ClassMap<VarType::IntPtr> { using ClassName = VarIntPtr; };
+	template <> struct Type2ClassMap<VarType::CharPtr> { using ClassName = VarCharPtr; };
+	template <> struct Type2ClassMap<VarType::DoublePtr> { using ClassName = VarDoublePtr; };
+	template <> struct Type2ClassMap<VarType::BoolPtr> { using ClassName = VarBoolPtr; };
 
-		template <> struct Type2ClassMap<VarType::IntPtr> { using ClassName = VarIntPtr; };
-		template <> struct Type2ClassMap<VarType::CharPtr> { using ClassName = VarCharPtr; };
-		template <> struct Type2ClassMap<VarType::DoublePtr> { using ClassName = VarDoublePtr; };
-		template <> struct Type2ClassMap<VarType::BoolPtr> { using ClassName = VarBoolPtr; };
-
-		template <> struct Type2ClassMap<VarType::IntRef> { using ClassName = VarIntRef; };
-		template <> struct Type2ClassMap<VarType::CharRef> { using ClassName = VarCharRef; };
-		template <> struct Type2ClassMap<VarType::DoubleRef> { using ClassName = VarDoubleRef; };
-		template <> struct Type2ClassMap<VarType::BoolRef> { using ClassName = VarBoolRef; };
-
-	} // anonymous namespace
+	template <> struct Type2ClassMap<VarType::IntRef> { using ClassName = VarIntRef; };
+	template <> struct Type2ClassMap<VarType::CharRef> { using ClassName = VarCharRef; };
+	template <> struct Type2ClassMap<VarType::DoubleRef> { using ClassName = VarDoubleRef; };
+	template <> struct Type2ClassMap<VarType::BoolRef> { using ClassName = VarBoolRef; };
 
 
 

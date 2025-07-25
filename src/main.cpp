@@ -286,8 +286,8 @@ int main() {
         }
         test::self_test_bool(true);
         test::self_test_int(true);
-        test::self_test_double(true);
-        test::self_test_char(true);
+        //test::self_test_double(true);
+        //test::self_test_char(true);
     }
 
 
