@@ -44,13 +44,16 @@ namespace thz {
 		std::shared_ptr<VarBase> get_return_var() {
 			return m_returnVar;
 		}
+		std::string get_return_typestr() const {
+			return type2Str(m_returnVar->get_type());
+		}
 		const std::shared_ptr<VarBase> get_return_var() const {
 			return m_returnVar;
 		}
-		const std::string& get_name() {
+		const std::string& get_name() const  {
 			return m_name;
 		}
-		const std::string& get_formal_args() {
+		const std::string& get_formal_args() const {
 			return m_formalArgs;
 		}
 

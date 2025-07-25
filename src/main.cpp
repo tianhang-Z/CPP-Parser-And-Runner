@@ -213,7 +213,7 @@ namespace test {
         }
 
         FuncBlock* mainFunc = FuncMap::get_func_map().create_func("mainFunc");
-        mainFunc->run_func(actualArgs, nullptr);
+        (*mainFunc).run_func(actualArgs, nullptr);
         if (display) {
             std::cout << "test file:" << filePath << std::endl;
             DisplayVar(mainFunc->get_return_var());

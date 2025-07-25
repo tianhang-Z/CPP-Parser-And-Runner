@@ -48,7 +48,9 @@ namespace thz {
 		const VarMap& get_var_map() const {
 			return m_varMap;
 		}
-
+		std::string get_block_body() const {
+			return m_blockBody;
+		}
 		Calculator& get_calc() {
 			return m_calc;
 		}

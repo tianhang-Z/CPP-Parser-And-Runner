@@ -30,6 +30,9 @@
     <ClCompile Include="src\ControlBlock.cpp">
       <Filter>source_code</Filter>
     </ClCompile>
+    <ClCompile Include="src\BasicClass.cpp">
+      <Filter>source_code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BasicFunc.h">
@@ -54,6 +57,9 @@
       <Filter>source_code</Filter>
     </ClInclude>
     <ClInclude Include="src\Timer.hpp">
+      <Filter>source_code</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BasicClass.h">
       <Filter>source_code</Filter>
     </ClInclude>
   </ItemGroup>

@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BasicBlock.cpp" />
+    <ClCompile Include="src\BasicClass.cpp" />
     <ClCompile Include="src\BasicFunc.cpp" />
     <ClCompile Include="src\BasicVar.cpp" />
     <ClCompile Include="src\Calculator.cpp" />
@@ -30,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BasicBlock.h" />
+    <ClInclude Include="src\BasicClass.h" />
     <ClInclude Include="src\BasicFunc.h" />
     <ClInclude Include="src\BasicVar.h" />
     <ClInclude Include="src\Calculator.h" />

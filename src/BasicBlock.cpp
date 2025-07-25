@@ -138,7 +138,7 @@ namespace thz {
         VarMap* curMap = &m_varMap;
         auto it = curMap->find(varName);
         while (it == curMap->end()) {
-            if (curBlock->m_parentBlock != nullptr ) {
+            if (curBlock->m_parentBlock != nullptr && curBlock->m_type != BlockType::FunBlock) {
                 curBlock = curBlock->m_parentBlock;
                 curMap = &(curBlock->m_varMap);
                 it = curMap->find(varName);
