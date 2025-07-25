@@ -42,6 +42,37 @@ int SimpleAddOne(int a) {
     return a + 1;
 }
 
+int& TestIf(int& a,bool check) {
+    int left = 10;
+    int right = 0;
+    if (true) {
+        for (int i = 0; i < 10; i++) {
+            if (true) {
+                a = a + 1;
+            }
+            else {
+                a = a + 2;
+            }
+        }
+    }
+    else if (check) {
+        a = SimpleAddOne(a);
+    }
+    else if (left > right) {
+        a = ForAddThirty(0);
+    }
+    else {
+        // a += 20
+        int b = 1;
+        int c = 1;
+        for (int i = 0; i <= 9; i++) {
+            int b = 1; 
+            a = a + b + c;
+        }
+    }
+    return a;
+}
+
 int ForAddThirty(int a) {
     int b = 1;
     int c = 1;
@@ -84,6 +115,10 @@ int Accumulate(int a) {
 
 int* FunCall(int a,int* b)
 {
+    int iVal = 0;
+    int& iRet = iVal;
+    iRet = TestIf(iRet, false);
+
     int& a1 = IntAddFourRef(a); // a1=4
 
     int v1 = 1;
@@ -95,7 +130,7 @@ int* FunCall(int a,int* b)
     int v3 = 1;
     // a3 = 2 + 1 + 2 + 30 + 55 + 10
     int& v4 = v3;
-    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddThirty(0) + Accumulate(1) + LoopBlockCallFunc(1) + NestedLoop(v4) ; 
+    int a3 = TestCala(v3, 3, 2, 1) + 1 + Sum(p1,p2) + ForAddThirty(0) + Accumulate(1) + LoopBlockCallFunc(1) + NestedLoop(v4) + iRet; 
     int* b1 = IntAddTwoPtr(b); // b1=2
     addOne(b1, a1);  // b1++ a1++
     int c1 = a1 + *b1 + a2 + a3;  

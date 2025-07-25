@@ -46,18 +46,20 @@ namespace thz{
 
     // 支持a<b  或 bool 类型
     bool Compare(const std::string& compareStr,Block* block) {
-        char compareMethod = GetCompareMethod(compareStr);
         size_t opBegin = compareStr.find_first_of("<>=");
         if (opBegin == std::string::npos) {
             if (compareStr == "true") return true;
             else if (compareStr == "false") return false;
             // 此时block中为变量
             auto boolVar = block->find_var(compareStr);
-            if (boolVar == nullptr || boolVar->get_type() != VarType::Bool);
+            if (boolVar == nullptr || boolVar->get_type() != VarType::Bool)
                 throw std::runtime_error("can not find var");
+            else
+                return static_cast<bool>(GetDoubleValueByVar(boolVar));
             
         }
 
+        char compareMethod = GetCompareMethod(compareStr);
         std::string leftStr = Trim(compareStr.substr(0, opBegin));
 
         size_t rigthPartBegin = 0;
@@ -147,27 +149,50 @@ namespace thz{
         std::vector<std::string> conditionVec;
         std::vector<std::string> branchVec;
         
-        size_t curBranchPos = 0;
-        size_t braceEndPos = 0;
-        while ((braceEndPos = m_blockBody.find('}', curBranchPos))!= std::string::npos) {
-            size_t braceBeginPos = m_blockBody.find_first_of('{', curBranchPos);
+        size_t curTotalBranchPos = 0;
+        size_t braceBeginPos = 0;
+        
+        size_t leftBraceCnt = 0;
+
+        size_t searchPos = 0;
+        while ((braceBeginPos  = m_blockBody.find('{', curTotalBranchPos))!= std::string::npos) {
+            leftBraceCnt++;
+            searchPos = braceBeginPos;
+            while ( (searchPos = m_blockBody.find_first_of("{}", searchPos+1)) != std::string::npos) {
+                if(m_blockBody[searchPos] == '{')
+                    leftBraceCnt++;
+                else 
+                    leftBraceCnt--;
+                if (leftBraceCnt == 0) break;
+            }
+
+            size_t braceEndPos = searchPos;
+
             std::string curBranch = m_blockBody.substr(braceBeginPos + 1, braceEndPos - braceBeginPos - 1);
             branchVec.push_back(curBranch);
 
-            size_t parenthesesBeginPos = m_blockBody.find_first_of('(', curBranchPos);
-            size_t parenthesesEndPos = m_blockBody.find_first_of(')', curBranchPos);
-            if (parenthesesBeginPos != std::string::npos && parenthesesEndPos != std::string::npos) {
-                std::string condition = m_blockBody.substr(parenthesesBeginPos + 1, parenthesesEndPos = parenthesesBeginPos - 1);
+            size_t parenthesesBeginPos = m_blockBody.find_first_of('(', curTotalBranchPos);
+            size_t parenthesesEndPos = m_blockBody.find_first_of(')', curTotalBranchPos);
+            if (parenthesesBeginPos != std::string::npos && parenthesesEndPos != std::string::npos && parenthesesEndPos<braceBeginPos) {
+                std::string condition = m_blockBody.substr(parenthesesBeginPos + 1, parenthesesEndPos - parenthesesBeginPos - 1);
                 conditionVec.push_back(condition);
             }
             else {
                 conditionVec.push_back("");
             }
 
-            curBranchPos = braceEndPos + 1;
+            curTotalBranchPos = braceEndPos + 1;
         }
 
-        
+        for (int i = 0; i < conditionVec.size(); i++) {
+            std::string condition = conditionVec[i];
+            std::string branch = branchVec[i];
+            // condition size==0 说明是最后的else
+            if (condition.size()==0 || Compare(condition,this)) {
+                parse_block_body(branch);
+                break;
+            }
+        }
 
     }
 }

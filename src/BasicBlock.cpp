@@ -196,7 +196,7 @@ namespace thz {
             LoopBlock(stmt,this).run_loop();
         }
         else if (stmt.find("if") == 0) {
-
+            IfBlock(stmt, this).run_if();
         }
         else if (IsVarDeclStmt(stmt))
             parse_variable_declaration(stmt);

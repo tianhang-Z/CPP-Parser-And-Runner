@@ -84,8 +84,41 @@ int& NestedLoop(int& sum) {
 }
 ```
 #### 支持if, else if, else
+* 支持多个else if分支
+* 支持判断条件为true、 false、 bool变量、比较语句
+* 支持内部函数调用
+* 支持内部嵌套loop for, 嵌套if else， 支持二者互相嵌套
 
-
-
-
+```
+int& TestIf(int& a,bool check) {
+    int left = 10;
+    int right = 0;
+    if (true) {
+        for (int i = 0; i < 10; i++) {
+            if (true) {
+                a = a + 1;
+            }
+            else {
+                a = a + 2;
+            }
+        }
+    }
+    else if (check) {
+        a = SimpleAddOne(a);
+    }
+    else if (left > right) {
+        a = ForAddThirty(0);
+    }
+    else {
+        // a += 20
+        int b = 1;
+        int c = 1;
+        for (int i = 0; i <= 9; i++) {
+            int b = 1; 
+            a = a + b + c;
+        }
+    }
+    return a;
+}
+```
 

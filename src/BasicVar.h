@@ -231,7 +231,7 @@ namespace thz {
 			set_name(name);
 			if (IsRef(data->get_type())) {
 				auto temp = std::dynamic_pointer_cast<VarRef<T, Type, RefType,PtrType >>(data);
-				set_data_by_str(temp->get_data_to_str());
+				set_raw_data(temp->get_raw_data());
 			}
 			else {
 				auto temp = std::dynamic_pointer_cast<VarNumeric>(data);

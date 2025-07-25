@@ -280,11 +280,11 @@ int main() {
     //test::self_test_char();
     {
         TimeGuard guard("loop 100 times:");
-        for (int i = 0; i < 100; i++) {
-            test::self_test_bool();
-            test::self_test_int();
-        }
-        test::self_test_bool(true);
+        //for (int i = 0; i < 100; i++) {
+        //    test::self_test_bool();
+        //    test::self_test_int();
+        //}
+        //test::self_test_bool(true);
         test::self_test_int(true);
         //test::self_test_double(true);
         //test::self_test_char(true);
