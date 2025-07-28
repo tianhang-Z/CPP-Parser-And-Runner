@@ -97,16 +97,224 @@ std::string RemoveComments(const std::string& str) {
     return result;
 }
 
-// 从文件中提取函数信息
-std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath) {
-    std::map<std::string, FuncInfo> funcMap;
+bool IsAccessSpecifier(const std::string& str, size_t pos) {
+    return str.compare(pos, 6, "public") == 0 ||
+        str.compare(pos, 7, "private") == 0 ||
+        str.compare(pos, 9, "protected") == 0;
+}
+
+void SkipAccessSpecifier(const std::string& str, size_t& pos) {
+    while (pos < str.size() && str[pos] != ':')
+        pos++;
+    if (pos < str.size()) pos++;
+}
+
+std::string ExtractIdentifier(const std::string& str, size_t start, size_t end) {
+    size_t nameEnd = end;
+    while (nameEnd > start &&
+        (std::isspace(str[nameEnd - 1]) ||
+            str[nameEnd - 1] == '*' ||
+            str[nameEnd - 1] == '&'))
+        nameEnd--;
+
+    size_t nameStart = nameEnd;
+    while (nameStart > start &&
+        !std::isspace(str[nameStart - 1]) &&
+        str[nameStart - 1] != '*' &&
+        str[nameStart - 1] != '&' &&
+        str[nameStart - 1] != '(')
+        nameStart--;
+
+    if (nameStart >= nameEnd) return "";
+    return Trim(str.substr(nameStart, nameEnd - nameStart));
+}
+
+std::string ExtractReturnType(const std::string& str, size_t start, size_t nameStart) {
+    size_t returnTypeStart = nameStart;
+    while (returnTypeStart > start &&
+        (std::isspace(str[returnTypeStart - 1]) ||
+            str[returnTypeStart - 1] == '*' ||
+            str[returnTypeStart - 1] == '&' ||
+            std::isalnum(str[returnTypeStart - 1])))
+        returnTypeStart--;
+
+    return Trim(str.substr(returnTypeStart, nameStart - returnTypeStart));
+}
+
+std::string ExtractParameters(const std::string& str, size_t parenStart, size_t& pos) {
+    size_t paramEnd = parenStart + 1;
+    int parenCount = 1;
+    while (paramEnd < str.size() && parenCount > 0) {
+        if (str[paramEnd] == '(') parenCount++;
+        else if (str[paramEnd] == ')') parenCount--;
+        paramEnd++;
+    }
+
+    if (parenCount != 0) {
+        pos = paramEnd;
+        return "";
+    }
+
+    pos = paramEnd;
+    return Trim(str.substr(parenStart + 1, paramEnd - parenStart - 2));
+}
+
+std::string ExtractFunctionBody(const std::string& str, size_t bodyStart, size_t& pos) {
+    int braceCount = 1;
+    size_t bodyEnd = bodyStart + 1;
+    while (bodyEnd < str.size() && braceCount > 0) {
+        if (str[bodyEnd] == '{') braceCount++;
+        else if (str[bodyEnd] == '}') braceCount--;
+        bodyEnd++;
+    }
+
+    if (braceCount != 0) {
+        pos = bodyStart + 1;
+        return "";
+    }
+
+    pos = bodyEnd;
+    return CompressWhitespace(str.substr(bodyStart + 1, bodyEnd - bodyStart - 2));
+}
+
+std::vector<std::string> ExtractVariableDeclarations(const std::string& classBody) {
+    std::vector<std::string> variables;
+    size_t pos = 0;
+
+    while (pos < classBody.size()) {
+        // 跳过空白字符
+        while (pos < classBody.size() && std::isspace(classBody[pos]))
+            pos++;
+
+        if (pos >= classBody.size()) break;
+
+        // 跳过访问修饰符
+        if (IsAccessSpecifier(classBody, pos)) {
+            SkipAccessSpecifier(classBody, pos);
+            continue;
+        }
+
+        // 跳过函数定义
+        size_t parenPos = classBody.find('(', pos);
+        size_t semicolonPos = classBody.find(';', pos);
+
+        if (parenPos != std::string::npos && parenPos < semicolonPos) {
+            // 这是函数定义，跳过
+            size_t bodyStart = classBody.find('{', parenPos);
+            if (bodyStart != std::string::npos) {
+                int braceCount = 1;
+                pos = bodyStart + 1;
+                while (pos < classBody.size() && braceCount > 0) {
+                    if (classBody[pos] == '{') braceCount++;
+                    else if (classBody[pos] == '}') braceCount--;
+                    pos++;
+                }
+            }
+            else {
+                pos = semicolonPos + 1;
+            }
+            continue;
+        }
+
+        // 处理变量声明
+        if (semicolonPos != std::string::npos) {
+            std::string varDecl = Trim(classBody.substr(pos, semicolonPos - pos));
+            if (!varDecl.empty()) {
+                // 处理可能的多个变量声明，如: int a, b, c;
+                size_t commaPos = varDecl.find(',');
+                if (commaPos != std::string::npos) {
+                    std::string baseType = Trim(varDecl.substr(0, varDecl.find_last_of(" \t\n\r", commaPos)));
+                    std::vector<std::string> varNames = Split(varDecl.substr(commaPos + 1), ',');
+
+                    variables.push_back(baseType + " " + Trim(varDecl.substr(0, commaPos)));
+                    for (const auto& name : varNames) {
+                        variables.push_back(baseType + " " + Trim(name));
+                    }
+                }
+                else {
+                    variables.push_back(varDecl);
+                }
+            }
+            pos = semicolonPos + 1;
+        }
+        else {
+            break;
+        }
+    }
+
+    return variables;
+}
+
+
+// 类信息提取
+ClassInfo ExtractClassInfo(const std::string& className, const std::string& classBody) {
+    ClassInfo classInfo;
+    classInfo.className = className;
+    // 先提取所有变量声明
+    classInfo.varInfo = ExtractVariableDeclarations(classBody);
+
+    size_t bodyPos = 0;
+    while (bodyPos < classBody.size()) {
+        // 跳过空白字符
+        while (bodyPos < classBody.size() && std::isspace(classBody[bodyPos]))
+            bodyPos++;
+
+        if (bodyPos >= classBody.size()) break;
+
+        // 处理访问修饰符
+        if (IsAccessSpecifier(classBody, bodyPos)) {
+            SkipAccessSpecifier(classBody, bodyPos);
+            continue;
+        }
+
+        // 检查是否是函数
+        size_t parenPos = classBody.find('(', bodyPos);
+        if (parenPos != std::string::npos && parenPos < classBody.size()) {
+            // 提取函数信息
+            std::string funcName = ExtractIdentifier(classBody, bodyPos, parenPos);
+            if (!funcName.empty()) {
+                std::string returnType = ExtractReturnType(classBody, bodyPos, parenPos - funcName.size());
+                std::string formalArgs = ExtractParameters(classBody, parenPos, bodyPos);
+
+                // 检查是否有函数体
+                size_t bodyStart = classBody.find('{', bodyPos);
+                if (bodyStart != std::string::npos) {
+                    std::string funcBody = ExtractFunctionBody(classBody, bodyStart, bodyPos);
+                    if (!funcBody.empty()) {
+                        FuncInfo funcInfo{ returnType, funcName, formalArgs, funcBody };
+                        classInfo.funcMap[funcName] = funcInfo;
+                    }
+                }
+            }
+        }
+        else {
+            // 成员变量处理
+            size_t semicolonPos = classBody.find(';', bodyPos);
+            if (semicolonPos == std::string::npos) break;
+
+            std::string varDecl = Trim(classBody.substr(bodyPos, semicolonPos - bodyPos));
+            if (!varDecl.empty()) {
+                classInfo.varInfo.push_back(varDecl);
+            }
+            bodyPos = semicolonPos + 1;
+        }
+    }
+
+    return classInfo;
+}
+
+
+
+// 文件信息提取
+FileInfo ExtractFileInfo(const std::string& filePath) {
+    FileInfo fileInfo;
     std::ifstream file(filePath);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filePath << std::endl;
-        return funcMap;
+        return fileInfo;
     }
 
-    // 读取整个文件内容并移除注释
+    // 读取文件内容并移除注释
     std::ostringstream oss;
     oss << file.rdbuf();
     std::string content = RemoveComments(oss.str());
@@ -115,119 +323,75 @@ std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath) {
     size_t pos = 0;
     while (pos < content.size()) {
         // 跳过空白字符
-        while (pos < content.size() && std::isspace(static_cast<unsigned char>(content[pos])))
+        while (pos < content.size() && std::isspace(content[pos]))
             pos++;
 
         if (pos >= content.size()) break;
 
-        // 查找函数定义特征: <return-type> <name>(<args>) {
-        // 1. 找到左括号作为函数起始点
-        size_t parenStart = content.find('(', pos);
-        if (parenStart == std::string::npos) break;
+        // 处理类定义
+        if (content.compare(pos, 6, "class ") == 0) {
+            pos += 6;
+            // 提取类名
+            size_t classNameStart = pos;
+            while (pos < content.size() && !std::isspace(content[pos]) &&
+                content[pos] != '{' && content[pos] != ':')
+                pos++;
 
-        // 2. 从左边找到函数名起始
-        size_t nameEnd = parenStart;
-        while (nameEnd > 0 &&
-            (std::isspace(static_cast<unsigned char>(content[nameEnd - 1])) ||
-                content[nameEnd - 1] == '*' ||
-                content[nameEnd - 1] == '&'))
-            nameEnd--;
+            if (pos >= content.size()) break;
 
-        size_t nameStart = nameEnd;
-        while (nameStart > 0 &&
-            !std::isspace(static_cast<unsigned char>(content[nameStart - 1])) &&
-            content[nameStart - 1] != '*' &&
-            content[nameStart - 1] != '&' &&
-            content[nameStart - 1] != '(')
-            nameStart--;
+            std::string className = content.substr(classNameStart, pos - classNameStart);
+            className = Trim(className);
 
-        if (nameStart >= nameEnd) {
-            pos = parenStart + 1;
+            // 跳过继承部分
+            while (pos < content.size() && content[pos] != '{')
+                pos++;
+
+            if (pos >= content.size()) break;
+
+            // 提取类体
+            size_t classBodyStart = pos + 1;
+            int braceCount = 1;
+            pos++;
+            while (pos < content.size() && braceCount > 0) {
+                if (content[pos] == '{') braceCount++;
+                else if (content[pos] == '}') braceCount--;
+                pos++;
+            }
+
+            if (braceCount != 0) continue;
+
+            std::string classBody = content.substr(classBodyStart, pos - classBodyStart - 1);
+            fileInfo.allClassInfo[className] = ExtractClassInfo(className, classBody);
             continue;
         }
 
-        std::string funcName = content.substr(nameStart, nameEnd - nameStart);
-        funcName = Trim(funcName);
+        // 处理普通函数
+        size_t parenStart = content.find('(', pos);
+        if (parenStart == std::string::npos || parenStart >= content.size()) {
+            pos++;
+            continue;
+        }
 
-        // 3. 从函数名往前找返回类型
-        size_t returnTypeStart = nameStart;
-        while (returnTypeStart > 0 &&
-            (std::isspace(static_cast<unsigned char>(content[returnTypeStart - 1])) ||
-                content[returnTypeStart - 1] == '*' ||
-                content[returnTypeStart - 1] == '&' ||
-                std::isalnum(static_cast<unsigned char>(content[returnTypeStart - 1]))))
-            returnTypeStart--;
+        // 提取函数信息
+        std::string funcName = ExtractIdentifier(content, pos, parenStart);
+        if (!funcName.empty()) {
+            std::string returnType = ExtractReturnType(content, pos, parenStart - funcName.size());
+            std::string formalArgs = ExtractParameters(content, parenStart, pos);
 
-        std::string returnType = content.substr(returnTypeStart, nameStart - returnTypeStart);
-        returnType = Trim(returnType);
-
-        // 处理指针和引用返回类型 (确保保留*和&符号)
-        if (returnType.find('*') != std::string::npos || returnType.find('&') != std::string::npos) {
-            // 确保符号与类型名相邻
-            size_t posStar = returnType.find('*');
-            size_t posAmp = returnType.find('&');
-            size_t symbolPos = (posStar != std::string::npos) ? posStar : posAmp;
-
-            if (symbolPos > 0 && std::isspace(static_cast<unsigned char>(returnType[symbolPos - 1]))) {
-                // 移除符号前的空格
-                returnType = Trim(returnType.substr(0, symbolPos)) +
-                    returnType.substr(symbolPos);
+            // 查找函数体
+            size_t bodyStart = content.find('{', pos);
+            if (bodyStart != std::string::npos) {
+                std::string funcBody = ExtractFunctionBody(content, bodyStart, pos);
+                if (!funcBody.empty()) {
+                    FuncInfo funcInfo{ returnType, funcName, formalArgs, funcBody };
+                    fileInfo.allFuncInfo[funcName] = funcInfo;
+                }
             }
         }
-
-        // 4. 提取参数列表
-        size_t paramEnd = parenStart + 1;
-        int parenCount = 1;
-        while (paramEnd < content.size() && parenCount > 0) {
-            if (content[paramEnd] == '(') parenCount++;
-            else if (content[paramEnd] == ')') parenCount--;
-            paramEnd++;
+        else {
+            pos++;
         }
-
-        if (parenCount != 0) {
-            pos = paramEnd;
-            continue;
-        }
-
-        std::string formalArgs = content.substr(parenStart + 1, paramEnd - parenStart - 2);
-        formalArgs = Trim(formalArgs);
-
-        // 5. 查找函数体起始位置
-        size_t bodyStart = paramEnd;
-        while (bodyStart < content.size() && content[bodyStart] != '{')
-            bodyStart++;
-
-        if (bodyStart >= content.size()) {
-            pos = paramEnd;
-            continue;
-        }
-
-        // 6. 提取函数体
-        size_t bodyEnd = bodyStart + 1;
-        int braceCount = 1;
-        while (bodyEnd < content.size() && braceCount > 0) {
-            if (content[bodyEnd] == '{') braceCount++;
-            else if (content[bodyEnd] == '}') braceCount--;
-            bodyEnd++;
-        }
-
-        if (braceCount != 0) {
-            pos = bodyStart + 1;
-            continue;
-        }
-
-        std::string funcBody = content.substr(bodyStart + 1, bodyEnd - bodyStart - 2);
-        funcBody = CompressWhitespace(funcBody);
-
-        // 存入map
-        if (!funcName.empty() && !returnType.empty()) {
-            FuncInfo info{ returnType, funcName, formalArgs, funcBody };
-            funcMap[funcName] = info;
-        }
-
-        // 移动到函数体结束位置
-        pos = bodyEnd;
     }
 
-    return funcMap;
+    return fileInfo;
 }

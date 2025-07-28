@@ -123,5 +123,33 @@ int& TestIf(int& a,bool check) {
 ```
 
 #### 支持class
+* 支持class成员变量使用.访问
+* 支持成员函数
+* 兼容指针和引用
+* 兼容loop for和if
+* 暂不支持class指针
 
-
+```
+class Test{
+    int a;
+    int b;
+    int add_ten(int arg) {
+        for (int i = 0; i <= 10; i++) {
+            arg = arg + 1;
+        }
+        return arg;
+    }
+    int& ref_add_ten(int arg&) {
+        for (int i = 0; i <= 10; i++) {
+            arg = arg + 1;
+        }
+        return arg;
+    }
+    int* ptr_add_ten(int* arg) {
+        for (int i = 0; i <= 10; i++) {
+            *arg = *arg + 1;
+        }
+        return arg;
+    }
+}
+```

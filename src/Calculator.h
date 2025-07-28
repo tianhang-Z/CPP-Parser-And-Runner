@@ -23,17 +23,20 @@ namespace thz {
     class Calculator {
     public:
         Calculator() {
-            block = nullptr;
+            m_block = nullptr;
         }
         Calculator(Block* block)
-            :block(block) {
+            :m_block(block) {
         }
 
+        void set_block(Block* block) {
+            m_block = block;
+        }
         double evaluate_expression(const std::string& expr, Block* parent);
         std::shared_ptr<VarBase> evaluate_funCall(const std::string& expr, Block* parent);
     private:            
 
-        Block*  block;
+        Block*  m_block;
 
         std::vector<std::string> tokenize(const std::string& expr);
         double evaluate_tokens(const std::vector<std::string>& tokens, Block* parent);

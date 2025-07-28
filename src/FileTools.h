@@ -20,9 +20,39 @@ struct FuncInfo {
     std::string funcStmt;
 };
 
+inline std::ostream& operator<<(std::ostream& os, const FuncInfo& info) {
+    os << info.returnType << " " << info.funcName << " (" << info.formalArgs << ")" << std::endl;
+    os << "{" << std::endl << info.funcStmt << std::endl << "}" << std::endl;
+    return os;
+}
+
+struct ClassInfo {
+    std::string className;
+    std::map<std::string, FuncInfo> funcMap;
+    std::vector<std::string> varInfo;
+};
+
+
+inline std::ostream& operator<<(std::ostream& os, const ClassInfo& classInfo) {
+    os << "class name" << classInfo.className << std::endl;
+    os << "var decl ------------- " << std::endl;
+    for (auto& var : classInfo.varInfo)
+        os << var << std::endl;
+    for (auto& memberFuncInfo : classInfo.funcMap) {
+        os << memberFuncInfo.second;
+    }
+    return os;
+}
+
+
+struct FileInfo {
+    std::map<std::string, FuncInfo> allFuncInfo;
+    std::map<std::string, ClassInfo> allClassInfo;
+};
+
 // ¸¨Öúº¯ÊýÉùÃ÷
 std::string CompressWhitespace(const std::string& str);
-std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath);
-
+//std::map<std::string, FuncInfo> ExtractFunctions(const std::string& filePath);
+FileInfo ExtractFileInfo(const std::string& filePath);
 
 #endif // !__FILETOOLS_

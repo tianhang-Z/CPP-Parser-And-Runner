@@ -67,7 +67,6 @@ namespace thz {
 
 
 	private:
-
 		std::string m_name;
 		std::string m_formalArgs;       // –Œ≤Œ”Ôæ‰
 		std::shared_ptr<VarBase> m_returnVar;

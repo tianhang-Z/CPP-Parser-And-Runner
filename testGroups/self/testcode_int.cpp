@@ -42,6 +42,29 @@ int SimpleAddOne(int a) {
     return a + 1;
 }
 
+class Test{
+    int a;
+    int b;
+    int add_ten(int arg) {
+        for (int i = 0; i <= 10; i++) {
+            arg = arg + 1;
+        }
+        return arg;
+    }
+    int& ref_add_ten(int arg&) {
+        for (int i = 0; i <= 10; i++) {
+            arg = arg + 1;
+        }
+        return arg;
+    }
+    int* ptr_add_ten(int* arg) {
+        for (int i = 0; i <= 10; i++) {
+            *arg = *arg + a;
+        }
+        return arg;
+    }
+}
+
 int& TestIf(int& a,bool check) {
     int left = 10;
     int right = 0;
@@ -141,12 +164,21 @@ int* FunCall(int a,int* b)
 // arg1=0, arg2=0
 int mainFunc(int arg1, int arg2)
 {
-    int& a = arg1;
-    int* b;
-    b = &arg2;
-    int* temp_b;
-    temp_b = b;
-    int* b1 = FunCall(a, temp_b);
-    int ret = *b1;
-    return ret;
+    Test a_cls;
+    a_cls.a = 10;
+    //a_cls.b = 10;
+    //int& a = arg1;
+    //int* b;
+    //b = &arg2;
+    //int* temp_b;
+    //temp_b = b;
+    //int* b1 = FunCall(a, temp_b);
+    //int ret = *b1;
+    //return ret;
+    //int b3 = a_cls.get_a();
+    //return b3;
+    int a = a_cls.a;
+    int* a1 = &a;
+    int* ret = a_cls.ptr_add_ten(a1);
+    return *ret;
 }

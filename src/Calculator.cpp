@@ -1,5 +1,6 @@
 #include <Calculator.h>
 #include <BasicFunc.h>
+#include <BasicClass.h>
 
 namespace thz {
 
@@ -67,71 +68,96 @@ namespace thz {
     //解析和分割expr
     std::vector<std::string> Calculator::tokenize(const std::string& expr) {
         std::vector<std::string> tokens;
-        std::string currentToken;
-        TokenType currentType = TokenType::NONE;
-        for (char c : expr) {
+        std::string current;
+        auto commit = [&] {
+            if (!current.empty()) tokens.push_back(current);
+            current.clear();
+            };
+
+        for (size_t i = 0; i < expr.size(); ++i) {
+            const char c = expr[i];
+
             if (isspace(c)) {
-                if (!currentToken.empty()) {
-                    tokens.push_back(currentToken);
-                    currentToken.clear();
-                    currentType = TokenType::NONE;
-                }
+                commit();
                 continue;
             }
 
-            // 处理变量名（可以包含字母、数字、下划线）
-            if (isalpha(c) || c == '_' ||
-                (isdigit(c) && currentType == TokenType::IDENTIFIER)) {
-
-                if (currentType == TokenType::NUMBER && !currentToken.empty()) {
-                    tokens.push_back(currentToken);
-                    currentToken.clear();
+            // 处理变量名（字母开头，允许字母、数字、下划线）
+            if (isalpha(c) || c == '_') {
+                current += c;
+                // 继续读取后续的字母、数字或下划线
+                while (i + 1 < expr.size() && (isalnum(expr[i + 1]) || expr[i + 1] == '_' || expr[i + 1] == '.')) {
+                    i++;
+                    // 处理点号（确保是成员访问）
+                    if (expr[i] == '.') {
+                        current += '.';
+                        // 点号后必须跟字母/下划线
+                        if (i + 1 >= expr.size() || !(isalpha(expr[i + 1]) || expr[i + 1] == '_')) {
+                            throw std::runtime_error("Invalid member access syntax");
+                        }
+                        continue;
+                    }
+                    current += expr[i];
                 }
-
-                currentToken += c;
-                currentType = TokenType::IDENTIFIER;
+                commit();
             }
-            // 处理数字（包括负号、小数点）
-            else if (isdigit(c) || c == '.' ||
-                (c == '-' && currentToken.empty())) {
-
-                if (currentType == TokenType::IDENTIFIER && !currentToken.empty()) {
-                    tokens.push_back(currentToken);
-                    currentToken.clear();
+            // 处理数字（含负号、小数点和科学计数法）
+            else if (isdigit(c) || (c == '-' && (current.empty() || tokens.back() == "("))) {
+                if (!current.empty() && isalpha(current.back()))
+                    throw std::runtime_error("Invalid number format");
+                current += (c == '-' && current.empty()) ? '@' : c; // 一元负号转@
+                // 继续读取数字、小数点或科学计数法
+                while (i + 1 < expr.size() && (isdigit(expr[i + 1]) || expr[i + 1] == '.' ||
+                    tolower(expr[i + 1]) == 'e')) {
+                    current += expr[++i];
+                    // 处理科学计数法的正负号（如 1e-2）
+                    if (tolower(expr[i]) == 'e' && i + 1 < expr.size() &&
+                        (expr[i + 1] == '+' || expr[i + 1] == '-')) {
+                        current += expr[++i];
+                    }
                 }
-
-                currentToken += c;
-                currentType = TokenType::NUMBER;
+                commit();
             }
-            // 处理其他字符（运算符 + - * /  & 括号 等）
-            else {
-                if (!currentToken.empty()) {
-                    tokens.push_back(currentToken);
-                    currentToken.clear();
-                    currentType = TokenType::NONE;
+            // 处理点号（成员访问或成员函数调用，如 obj.p1 或 obj.fun()）
+            else if (c == '.' && !tokens.empty() &&
+                (isalpha(tokens.back().back()) || tokens.back().back() == '_')) {
+                // 不立即提交，而是继续读取点号后的标识符（如 obj.fun）
+                current += c;
+                // 确保点号后是合法的变量名
+                if (i + 1 >= expr.size() || !isalpha(expr[i + 1]))
+                    throw std::runtime_error("Invalid member access syntax");
+                // 继续读取点号后的部分（如 fun）
+                while (i + 1 < expr.size() && (isalnum(expr[i + 1]) || expr[i + 1] == '_')) {
+                    current += expr[++i];
                 }
-
-                // 特殊处理函数调用
-                if (c == '(' || c == ')' || c == ',') {
-                    tokens.push_back(std::string(1, c));
-                }
-                // 特殊处理一元负号
-                else if (c == '-' && (tokens.empty() ||
-                    tokens.back() == "(" ||
-                    tokens.back() == "+" ||
-                    tokens.back() == "-" ||
-                    tokens.back() == "*" ||
-                    tokens.back() == "/")) {
-                    tokens.push_back("@");
+                // 如果后面是 '('，则整体作为函数调用（如 obj.fun()）
+                if (i + 1 < expr.size() && expr[i + 1] == '(') {
+                    // 不提交，等待处理 '('
                 }
                 else {
-                    tokens.push_back(std::string(1, c));
+                    commit();
+                }
+            }
+            // 其他运算符
+            else {
+                commit();
+                if (c == '(' || c == ')' || c == ',') {
+                    tokens.emplace_back(1, c);
+                }
+                else if (strchr("+-*/&|=", c)) {
+                    tokens.emplace_back(1, c);
+                }
+                else {
+                    throw std::runtime_error(std::string("Invalid character: ") + c);
                 }
             }
         }
+        commit();
 
-        if (!currentToken.empty()) {
-            tokens.push_back(currentToken);
+        // 校验点号用法（不能以点号结尾）
+        for (const auto& tok : tokens) {
+            if (tok.back() == '.' || (tok.size() > 1 && tok.find("..") != std::string::npos))
+                throw std::runtime_error("Invalid dot operator usage");
         }
 
         return tokens;
@@ -171,7 +197,20 @@ namespace thz {
                     tokens_idx++;
                 }
                 if (tokens_idx < tokens.size() && tokens[tokens_idx] == ")") tokens_idx++;
-                std::shared_ptr<VarBase> ret = FuncMap::get_func_map().call_func(funcName, actualArgs, parent);
+                std::shared_ptr<VarBase> ret;
+                if (funcName.find('.') != std::string::npos) {
+                    // 类函数调用
+                    size_t dotPos = funcName.find('.');
+                    std::string className = funcName.substr(0, dotPos);
+                    std::string memberFunName = funcName.substr(dotPos + 1);
+                    std::shared_ptr<BasicClass> cls = m_block->find_class(className);
+                    if (cls == nullptr)
+                        throw std::runtime_error("can not find class");
+                    else
+                        ret = cls->call_func(memberFunName, actualArgs, parent);
+                }
+                else 
+                    ret = FuncMap::get_func_map().call_func(funcName, actualArgs, parent);
                 return ret;
             }
         }
@@ -181,7 +220,7 @@ namespace thz {
 
 
     // 增加关键字处理逻辑
-    // static_cast 
+
     double Calculator::evaluate_tokens(const std::vector<std::string>& tokens, Block* parent) {
         std::vector<double> values;
         std::vector<std::string> ops;
@@ -207,18 +246,15 @@ namespace thz {
             else if (token == "false") {
                 values.push_back(0);
             }
-            // 处理类访问即类函数调用
-            //else if () {
-
-            //}
             // 处理变量名  
             else if (isalpha(token[0])) {
-                auto var = block->find_var(token);
+                auto var = m_block->find_var(token);
+                
                 if (var == nullptr) {
                     throw std::runtime_error("Undefined variable: " + token);
                 }
                 // 当变量名前面有一个*，*前有一个其他符号时，需要解引用
-                if ((i == 1 && tokens[i - 1] == "*") || 
+                if ((i == 1 && tokens[i - 1] == "*") ||
                     (i >= 2 && tokens[i - 1] == "*") ||
                     (i >= 2 && tokens[i - 1] == "*" && IsOp(tokens[i - 2])) ||
                     (i >= 2 && tokens[i - 1] == "*" && tokens[i - 2] == "(")) {
@@ -232,6 +268,8 @@ namespace thz {
                 else {
                     values.push_back(GetDoubleValueByVar(var));
                 }
+                
+
             }
             // 处理数字
             else if (token.find_first_not_of("0123456789.-") == std::string::npos &&

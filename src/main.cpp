@@ -1,6 +1,7 @@
 #include <Calculator.h>
 #include <BasicVar.h>
 #include <BasicFunc.h>
+#include <BasicClass.h>
 #include <logger.h>
 #include <FileTools.h>
 #include <iostream>
@@ -190,7 +191,7 @@ namespace test {
     }
 
     void test_extractFunc() {
-        std::map<std::string, FuncInfo> funcMap = ExtractFunctions("E:/hw2/testGroups/group1/cppCode3.cpp");
+        std::map<std::string, FuncInfo> funcMap = ExtractFileInfo("E:/hw2/testGroups/group1/cppCode3.cpp").allFuncInfo;
 
         if (funcMap.find("mainFunc") != funcMap.end()) {
             FuncInfo mainFunc = funcMap["mainFunc"];
@@ -201,8 +202,12 @@ namespace test {
         }
     }
     void test_file(std::string filePath, std::string actualArgs, bool display = false) {
-        std::map<std::string, FuncInfo> funcInfoMap = ExtractFunctions(filePath);
-        
+        FileInfo fileInfo = ExtractFileInfo(filePath);
+        std::map<std::string, FuncInfo> funcInfoMap = fileInfo.allFuncInfo;
+        auto classInfo = fileInfo.allClassInfo;
+        ClassManager::get_manager().set_class_info(classInfo);
+        ClassManager::get_manager().show_class();
+
         for (auto& func : funcInfoMap) {
             std::string returnType = func.second.returnType;
             std::string name = func.second.funcName;

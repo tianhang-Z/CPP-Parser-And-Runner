@@ -1,6 +1,7 @@
 #include <BasicBlock.h>
 #include <ControlBlock.h>
 #include <FileTools.h>
+#include <BasicClass.h>
 
 namespace thz {
 
@@ -23,6 +24,17 @@ namespace thz {
         else return false;
     };
 
+    bool IsClassDecl(const std::string& stmt) {
+        size_t spacePos = stmt.find(" ");
+        std::string type = Trim(stmt.substr(0, spacePos));
+        if (ClassManager::get_manager().find_class_type(type))
+            return true;
+        else return false;
+    }
+
+
+
+
     bool IsFunCall(const std::string& stmt) {
         // 空字符串直接返回false
         if (stmt.empty())
@@ -33,8 +45,8 @@ namespace thz {
         if (!std::isalpha(stmt[idx]) && stmt[idx] != '_')
             return false;
         idx++;
-        // 读取函数名（允许字母、数字、下划线）
-        while (idx < stmt.size() && (std::isalnum(stmt[idx]) || stmt[idx] == '_')) {
+        // 读取函数名（允许字母、数字、下划线以及.）
+        while (idx < stmt.size() && (std::isalnum(stmt[idx]) || stmt[idx] == '_'|| stmt[idx] == '.')) {
             idx++;
         }
         // 跳过函数名后的空格
@@ -134,24 +146,52 @@ namespace thz {
 
     // 向上查找block 但是不允许跨函数查找，当parent为funcblock时，只查一次
     std::shared_ptr<VarBase> Block::find_var(std::string varName) {
-        Block* curBlock = this;
-        VarMap* curMap = &m_varMap;
-        auto it = curMap->find(varName);
-        while (it == curMap->end()) {
-            if (curBlock->m_parentBlock != nullptr && curBlock->m_type != BlockType::FunBlock) {
-                curBlock = curBlock->m_parentBlock;
-                curMap = &(curBlock->m_varMap);
-                it = curMap->find(varName);
-                if (curBlock->m_type == BlockType::FunBlock) {
-                    if (it == curMap->end()) return nullptr;
-                    else return it->second;
+        if (varName.find('.') == std::string::npos) {
+            Block* curBlock = this;
+            VarMap* curMap = &m_varMap;
+            auto it = curMap->find(varName);
+            while (it == curMap->end()) {
+                if (curBlock->m_parentBlock != nullptr && curBlock->m_type != BlockType::FunBlock) {
+                    curBlock = curBlock->m_parentBlock;
+                    curMap = &(curBlock->m_varMap);
+                    it = curMap->find(varName);
+                    if (curBlock->m_type == BlockType::FunBlock) {
+                        if (it == curMap->end()) return nullptr;
+                        else return it->second;
+                    }
                 }
+                else
+                    return nullptr; // 没有这个var
             }
-            else
-                return nullptr; // 没有这个var
+
+            return it->second;
         }
-            
-        return it->second;
+        else {
+            //varName中含有. ,访问类中的变量
+            Block* curBlock = this;
+            size_t dotPos = varName.find('.');
+            std::string className = varName.substr(0, dotPos);
+            std::string memberVarName = varName.substr(dotPos + 1);
+            ClassMap* curMap = &m_classMap;
+            auto it = curMap->find(className);
+            while (it == curMap->end()) {
+                if (curBlock->m_parentBlock != nullptr && curBlock->m_type != BlockType::FunBlock) {
+                    curBlock = curBlock->m_parentBlock;
+                    curMap = &(curBlock->m_classMap);
+                    it = curMap->find(className);
+                    if (curBlock->m_type == BlockType::FunBlock) {
+                        if (it == curMap->end()) return nullptr;
+                        else return it->second->find_var(memberVarName);
+                    }
+                }
+                else
+                    return nullptr; 
+            }
+
+            return it->second->find_var(memberVarName);
+
+        }
+
     }
 
     // 支持向上查找父block 找到函数的block
@@ -190,13 +230,22 @@ namespace thz {
         }
     }
 
+
     // 添加if else for等的处理
     void Block::parse_statement(const std::string& stmt) {
         if (stmt.find("for") == 0) {
-            LoopBlock(stmt,this).run_loop();
+            LoopBlock loopBlock(stmt,this);
+            if (this->get_owner() != nullptr) {
+                loopBlock.set_owner(this->get_owner());
+            }
+            loopBlock.run_loop();
         }
         else if (stmt.find("if") == 0) {
-            IfBlock(stmt, this).run_if();
+            IfBlock ifBlock(stmt, this);
+            if (this->get_owner() != nullptr) {
+                ifBlock.set_owner(this->get_owner());
+            }
+            ifBlock.run_if();
         }
         else if (IsVarDeclStmt(stmt))
             parse_variable_declaration(stmt);
@@ -206,11 +255,21 @@ namespace thz {
             parse_return_statement(stmt);
         else if (IsFunCall(stmt))
             m_calc.evaluate_funCall(stmt, this);
-        else
+        else if(IsClassDecl(stmt)) 
+            parse_class_decl(stmt);
+        else 
             throw std::runtime_error("can not match stmt");
     }
 
 
+    void Block::parse_class_decl(const std::string& stmt) {
+        size_t spacePos = stmt.find(" ");
+        std::string type = Trim(stmt.substr(0, spacePos));
+        std::string name = Trim(stmt.substr(spacePos + 1));
+
+        auto initClass = ClassManager::get_manager().create_class(name, type);
+        m_classMap[name] = initClass;
+    }
 
     void Block::parse_variable_declaration(const std::string& stmt) {
         std::vector<std::string> parts = Split(stmt, ' ');
@@ -358,8 +417,20 @@ namespace thz {
             varDeRef = true;
             varName = varName.substr(1);
         }
-
-        auto leftVar = find_var(varName);
+        std::shared_ptr<VarBase> leftVar;
+        if (varName.find('.') != std::string::npos) {
+            // basic class    .访问变量
+            size_t dotPos = varName.find('.');
+            std::string className = varName.substr(0, dotPos);
+            std::string memberVarName = varName.substr(dotPos + 1);
+            if (m_classMap.find(className) == m_classMap.end()) {
+                throw std::runtime_error("can not find class: "+ className);
+            }
+            leftVar = m_classMap[className]->find_var(memberVarName);
+        }
+        else {
+            leftVar = find_var(varName);
+        }
         if (leftVar == nullptr) {
             throw std::runtime_error("Undefined variable: " + varName);
         }
