@@ -4,6 +4,23 @@ namespace thz {
 
     class ControlBlock;
 
+
+    FuncBlock::FuncBlock(const std::string& returnType, const std::string& name, const std::string& formalArgs, const std::string& funcStmt)
+        :Block(funcStmt),
+        m_name(name),
+        m_formalArgs(formalArgs) {
+        m_type = BlockType::FunBlock;
+        create_return_var(returnType);
+    };
+    FuncBlock::FuncBlock(const FuncBlock& func) : Block(func.m_blockBody) {
+        m_type = BlockType::FunBlock;
+        m_name = func.m_name;
+        m_formalArgs = func.m_formalArgs;
+        VarType returnType = func.get_return_var()->get_type();
+        create_return_var(type2Str(returnType));
+    };
+
+
     void FuncBlock::set_args(const std::string& actualArgs) {
         // 解析形参声明，如 "char a, int b, double c"
         std::vector<std::string> formalParamDecls = Split(m_formalArgs, ',');
@@ -71,6 +88,35 @@ namespace thz {
 
     void FuncBlock::parse_function_body() {
         parse_block_body(m_blockBody);
+    }
+
+    // 支持重载 name+actualArgs组成唯一标识 name+formalArgs也组成唯一标识
+    std::shared_ptr<VarBase> FuncMap::call_func(const std::string name, const std::string& actualArgs, Block* parent) {
+
+        auto it = m_funcMap.find(name);
+        if (it == m_funcMap.end()) {
+            throw std::runtime_error("Function not found: " + name);
+        }
+        FuncBlock copyFunc(*(it->second));
+
+        return copyFunc.run_func(actualArgs, parent);
+
+    }
+
+    FuncBlock* FuncMap::create_func(std::string name) {
+        auto it = m_funcMap.find(name);
+        if (it == m_funcMap.end()) {
+            throw std::runtime_error("Function not found: " + name);
+        }
+        FuncBlock* newFunc = new FuncBlock(*(it->second));
+        return newFunc;
+
+    }
+    void FuncMap::show_func() {
+        for (auto ele : m_funcMap) {
+            std::cout << "name: " << ele.first << std::endl;
+            std::cout << "params:" << ele.second->get_formal_args() << std::endl;
+        }
     }
 
 }

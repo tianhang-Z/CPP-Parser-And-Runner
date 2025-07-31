@@ -145,6 +145,23 @@ namespace thz{
     }
 
 
+    std::shared_ptr<VarBase> LoopBlock::find_var(std::string varName) {
+        std::shared_ptr<VarBase> memberVar = nullptr;
+        if (m_owner) {
+            memberVar = m_owner->find_var(varName);
+        }
+        std::shared_ptr<VarBase> blockVar = nullptr;
+        blockVar = Block::find_var(varName);
+        if (blockVar && memberVar)
+            throw std::runtime_error("redifine var ");
+        else if (memberVar)
+            return memberVar;
+        else
+            return blockVar;
+    }
+
+
+
     void IfBlock::parse_if_block() {
         std::vector<std::string> conditionVec;
         std::vector<std::string> branchVec;
@@ -194,5 +211,20 @@ namespace thz{
             }
         }
 
+    }
+
+    std::shared_ptr<VarBase> IfBlock::find_var(std::string varName) {
+        std::shared_ptr<VarBase> memberVar = nullptr;
+        if (m_owner) {
+            memberVar = m_owner->find_var(varName);
+        }
+        std::shared_ptr<VarBase> blockVar = nullptr;
+        blockVar = Block::find_var(varName);
+        if (blockVar && memberVar)
+            throw std::runtime_error("redifine var ");
+        else if (memberVar)
+            return memberVar;
+        else
+            return blockVar;
     }
 }

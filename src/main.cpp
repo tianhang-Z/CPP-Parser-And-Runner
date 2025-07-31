@@ -6,6 +6,8 @@
 #include <FileTools.h>
 #include <iostream>
 #include <Timer.hpp>
+#include <filesystem>
+
 
 namespace test {
     using namespace thz;
@@ -206,7 +208,7 @@ namespace test {
         std::map<std::string, FuncInfo> funcInfoMap = fileInfo.allFuncInfo;
         auto classInfo = fileInfo.allClassInfo;
         ClassManager::get_manager().set_class_info(classInfo);
-        ClassManager::get_manager().show_class();
+        //ClassManager::get_manager().show_class();
 
         for (auto& func : funcInfoMap) {
             std::string returnType = func.second.returnType;
@@ -220,8 +222,10 @@ namespace test {
         FuncBlock* mainFunc = FuncMap::get_func_map().create_func("mainFunc");
         (*mainFunc).run_func(actualArgs, nullptr);
         if (display) {
-            std::cout << "test file:" << filePath << std::endl;
-            DisplayVar(mainFunc->get_return_var());
+            //std::cout << "test file:" << filePath << std::endl;
+            //DisplayVar(mainFunc->get_return_var());
+            std::cout << "output return value:" << mainFunc->get_return_var()->get_data_to_str() << std::endl;
+            std::cout << std::endl;
         }
     }
 
@@ -267,6 +271,43 @@ namespace test {
         test_file(file_path, actualArgs, display);
     }
 
+
+    void test_hw2_file(std::string filePath, std::string paraPath, bool display = false) {
+        std::ifstream input(paraPath);
+        if (display) {
+            std::cout << "-------------------------------------------------------" << std::endl;
+            std::cout << "test file :" << filePath << std::endl;
+            std::cout << "param path:" << paraPath << std::endl;
+        }
+        std::string line;
+        size_t i = 0;
+        while (std::getline(input, line)) {
+            if (display) {
+                std::cout << "----------test file " << i++ << "------------" << std::endl;
+                std::cout << "expected result: " << line << std::endl;
+            }
+            size_t parenthesisBegin = line.find('(');
+            size_t parenthesisEnd = line.find(')');
+            std::string params = Trim(line.substr(parenthesisBegin + 1, parenthesisEnd - parenthesisBegin - 1));
+            test_file(filePath, params, display);
+        }
+        
+
+    }
+    void hw2_test(bool display=false) {
+        //test_hw2_file("E:/题目/第一题/Q1-1.cpp","E:/题目/第一题/Q1-1.txt",display);
+        //test_hw2_file("E:/题目/第一题/Q1-2.cpp", "E:/题目/第一题/Q1-2.txt",display);
+        //test_hw2_file("E:/题目/第一题/Q1-3.cpp", "E:/题目/第一题/Q1-3.txt",display);
+
+
+        //test_hw2_file("E:/题目/第二题/Q2-1.cpp", "E:/题目/第二题/Q2-1.txt",display);
+        //test_hw2_file("E:/题目/第二题/Q2-2.cpp", "E:/题目/第二题/Q2-2.txt",display);
+        //test_hw2_file("E:/题目/第二题/Q2-3.cpp", "E:/题目/第二题/Q2-3.txt",display);
+
+        test_hw2_file("E:/题目/第三题/Q3-1.cpp", "E:/题目/第三题/Q3-1.txt",display);
+        test_hw2_file("E:/题目/第三题/Q3-2.cpp", "E:/题目/第三题/Q3-2.txt",display);
+        test_hw2_file("E:/题目/第三题/Q3-3.cpp", "E:/题目/第三题/Q3-3.txt",display);
+    }
 }
 int main() {  
     Logger::SetLogFile("log.txt", false);
@@ -283,18 +324,24 @@ int main() {
     //test::test_double();
     //test::self_test_double();
     //test::self_test_char();
+    //{
+    //    TimeGuard guard("loop 100 times:");
+    //    //for (int i = 0; i < 100; i++) {
+    //    //    test::self_test_bool();
+    //    //    test::self_test_int();
+    //    //}
+    //    //test::self_test_bool(true);
+    //    test::self_test_int(true);
+    //    //test::self_test_double(true);
+    //    //test::self_test_char(true);
+    //}
+    //test::self_test_int(true);
     {
-        TimeGuard guard("loop 100 times:");
-        //for (int i = 0; i < 100; i++) {
-        //    test::self_test_bool();
-        //    test::self_test_int();
-        //}
-        //test::self_test_bool(true);
-        test::self_test_int(true);
-        //test::self_test_double(true);
-        //test::self_test_char(true);
+        TimeGuard guard("loop 1 times:");
+        for (int i = 0; i < 100; i++) {
+            test::hw2_test(false);
+        }
     }
-
 
 
 }

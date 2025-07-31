@@ -144,6 +144,56 @@ namespace thz {
         }
     }
 
+    std::vector<std::string> SplitDeclarations(const std::string& stmt) {
+        std::vector<std::string> declarations;
+        size_t type_end = stmt.find_first_of(" \t");
+        std::string type = stmt.substr(0, type_end);
+
+        std::string decl_part = stmt.substr(type_end + 1);
+        std::istringstream iss(decl_part);
+        std::string decl;
+        size_t paren_level = 0;
+        for (char c : decl_part) {
+            if (c == '(') paren_level++;
+            if (c == ')') paren_level--;
+
+            if (c == ',' && paren_level == 0) {
+                decl.erase(0, decl.find_first_not_of(" \t"));
+                declarations.push_back(type + " " + decl);
+                decl.clear();
+            }
+            else {
+                decl += c;
+            }
+        }
+
+        if (!decl.empty()) {
+            decl.erase(0, decl.find_first_not_of(" \t"));
+            declarations.push_back(type + " " + decl);
+        }
+
+        return declarations;
+    }
+
+
+    Block::Block(std::string blockBody)
+        :m_type(BlockType::BasicBlock),
+        m_varMap(),
+        m_blockBody(blockBody),
+        m_calc(this) {
+        m_parentBlock = nullptr;
+    };
+
+    Block::Block(std::string blockBody, Block* parentBlock)
+        :m_type(BlockType::BasicBlock),
+        m_varMap(),
+        m_blockBody(blockBody),
+        m_calc(this),
+        m_parentBlock(parentBlock) {
+    };
+
+
+
     // 向上查找block 但是不允许跨函数查找，当parent为funcblock时，只查一次
     std::shared_ptr<VarBase> Block::find_var(std::string varName) {
         if (varName.find('.') == std::string::npos) {
@@ -247,8 +297,12 @@ namespace thz {
             }
             ifBlock.run_if();
         }
-        else if (IsVarDeclStmt(stmt))
-            parse_variable_declaration(stmt);
+        else if (IsVarDeclStmt(stmt)) {
+            auto decls = SplitDeclarations(stmt);
+            for (auto& decl : decls) {
+                parse_variable_declaration(decl);
+            }
+        }
         else if (IsAssignStmt(stmt))
             parse_assignment(stmt);
         else if (IsReturnStmt(stmt))
@@ -479,6 +533,13 @@ namespace thz {
     std::shared_ptr<VarBase> Block::create_var_by_self_var(VarType type, std::string name, std::string argValue) {
         std::shared_ptr<VarBase> var = CreateVarByBlockVarMap(type, name, argValue, this);
         return var;
+    }
+
+    std::shared_ptr<BasicClass> Block::find_class(std::string clsName) {
+        if (m_classMap.find(clsName) != m_classMap.end()) {
+            return m_classMap[clsName];
+        }
+        else return nullptr;
     }
 
 }

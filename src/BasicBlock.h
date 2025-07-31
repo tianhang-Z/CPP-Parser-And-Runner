@@ -26,20 +26,8 @@ namespace thz {
 	public:
 		friend class Calculator;
 
-		Block(std::string blockBody) 
-			:m_type(BlockType::BasicBlock),
-			m_varMap(),
-			m_blockBody(blockBody),
-			m_calc(this) {
-			m_parentBlock = nullptr;
-		};
-
-		Block(std::string blockBody,Block* parentBlock) 
-			:m_type(BlockType::BasicBlock), 
-			m_varMap(), 
-			m_blockBody(blockBody),
-			m_calc(this),
-			m_parentBlock(parentBlock) {};
+		Block(std::string blockBody);
+		Block(std::string blockBody, Block* parentBlock);
 
 		BlockType get_block_type(){
 			return m_type;
@@ -74,12 +62,7 @@ namespace thz {
 
 		virtual std::shared_ptr<VarBase> find_var(std::string varName);
 
-		std::shared_ptr<BasicClass> find_class(std::string clsName) {
-			if (m_classMap.find(clsName) != m_classMap.end()) {
-				return m_classMap[clsName];
-			}
-			else return nullptr;
-		}
+		std::shared_ptr<BasicClass> find_class(std::string clsName);
 
 		// 支持向上查找父block 找到函数的block
 		virtual std::shared_ptr<VarBase> get_return_var();
